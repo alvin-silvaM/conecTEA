@@ -64,7 +64,7 @@ export const loginEscola = async (req, res) => {
 
         const escola = await loginEscolaService(cnpj, senha);
 
-        const token = jwt.sign({ cnpj: escola.cnpj }, process.env.SECRET, { expiresIn: "1d" });
+        const token = jwt.sign({id: escola._id, tipo: "escola"}, process.env.SECRET, {expiresIn: "1d"});
 
         return res.status(200).json({ message: "Login realizado com sucesso", token });
 

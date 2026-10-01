@@ -72,8 +72,10 @@ const escolaSchema = new mongoose.Schema({
 });
 
 // Gera o hash da senha antes de salvar (somente se a senha foi criada/alterada)
-escolaSchema.pre("save", async function () {
+escolaSchema.pre("save", async () => {
+
     if (!this.isModified("senha")) return;
+    
     this.senha = await bcrypt.hash(this.senha, 10);
 });
 
