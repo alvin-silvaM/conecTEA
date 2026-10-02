@@ -6,7 +6,7 @@ export const cadastrarEscolaService = async (escolaObject) => {
 
     const { email, cnpj } = escolaObject;
 
-    const emailJaUsado = await EscolaModel.findOne({ email: email.toLowerCase().trim() });
+    const emailJaUsado = await EscolaModel.findOne({email: email.toLowerCase().trim()});
 
     if (emailJaUsado) {
         const erro = new Error("Endereço de email já utilizado");
@@ -14,7 +14,7 @@ export const cadastrarEscolaService = async (escolaObject) => {
         throw erro;
     }
 
-    const cnpjJaUsado = await EscolaModel.findOne({ cnpj });
+    const cnpjJaUsado = await EscolaModel.findOne({cnpj});
 
     if (cnpjJaUsado) {
         const erro = new Error("CNPJ já cadastrado");
@@ -32,12 +32,14 @@ export const cadastrarEscolaService = async (escolaObject) => {
         return escolaSemSenha;
 
     } catch (erro) {
+
         // Duplicidade em campo unique (ex.: razaoSocial) que passou pelas verificações acima
         if (erro.code === 11000) {
             const duplicado = new Error("Já existe uma escola cadastrada com esses dados");
             duplicado.status = 409;
             throw duplicado;
         }
+
         throw erro;
     }
 }
@@ -45,7 +47,7 @@ export const cadastrarEscolaService = async (escolaObject) => {
 // Service de login
 export const loginEscolaService = async (cnpj, senha) => {
 
-    const escola = await EscolaModel.findOne({ cnpj }).select("+senha");
+    const escola = await EscolaModel.findOne({cnpj}).select("+senha");
 
     if (!escola) {
         const erro = new Error("CNPJ ou senha inválidos");

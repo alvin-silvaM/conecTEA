@@ -1,12 +1,10 @@
-import { cadastrarEscolaService, loginEscolaService } from "../services/escola.service.js";
 import jwt from "jsonwebtoken";
 
-// CUD para escola
+import { cadastrarEscolaService, loginEscolaService } from "../services/escola.service.js";
+import { validarCNPJ } from "../utils/entidades.util.js";
 
-function validarCNPJ(cnpj) {
-    const regex = /^\d{14}$/;
-    return regex.test(cnpj);
-}
+
+// CUD para escola
 
 // CREATE escola no database
 export const cadastrarEscola = async (req, res) => {
@@ -64,7 +62,7 @@ export const loginEscola = async (req, res) => {
 
         const escola = await loginEscolaService(cnpj, senha);
 
-        const token = jwt.sign({id: escola._id, tipo: "escola"}, process.env.SECRET, {expiresIn: "1d"});
+        const token = jwt.sign({_id: escola._id, tipo: "escola"}, process.env.SECRET, {expiresIn: "1d"});
 
         return res.status(200).json({ message: "Login realizado com sucesso", token });
 
