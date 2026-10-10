@@ -17,10 +17,25 @@ button:hover { background: #243b70; }
 .resultado:empty { display: none; }
 .resultado.ok { background: #dcfce7; }
 .resultado.erro { background: #fee2e2; }
-.badge { padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; background: #94a3b8; }
-.badge.on { background: #16a34a; }
-.badge.off { background: #dc2626; }
-#token-box { margin-top: .75rem; display: flex; justify-content: space-between; align-items: center; font-size: .85rem; }
-#token-box button { padding: .3rem .6rem; background: #64748b; }
+.badge { padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; background: #475569; color: #fff; }
+.badge.on { background: #15803d; }
+.badge.off { background: #b91c1c; }
 button.secundario { background: #64748b; margin-bottom: .75rem; width: 100%; }
 button.secundario:hover { background: #526074; }
+header .sair { margin-left: auto; padding: .3rem .8rem; background: #64748b; }
+h2.espaco { margin-top: 1.5rem; }
+h3 { font-size: .95rem; margin: 1rem 0 .4rem; }
+select { padding: .5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: .95rem; background: #fff; }
+.lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.lista li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .5rem .6rem; background: #f1f5f9; border-radius: 6px; font-size: .85rem; word-break: break-word; }
+.lista .excluir { padding: .25rem .6rem; background: #dc2626; font-size: .8rem; flex-shrink: 0; }
+.lista .excluir:hover { background: #b91c1c; }
+[hidden] { display: none !important; }
+.view { display: contents; }
+.aviso { margin: 0; padding: .6rem 1.5rem; background: #fef9c3; color: #713f12; font-size: .9rem; }
+.aviso:empty { display: none; }
+.dica { margin: 0 0 .75rem; font-size: .8rem; color: #4b5563; }
+.dica:empty { display: none; }
+.lista .estado { background: transparent; color: #4b5563; font-style: italic; }
+.lista .estado.erro { background: #fee2e2; color: #991b1b; font-style: normal; }
+button:disabled { background: #e2e8f0; color: #475569; cursor: not-allowed; }

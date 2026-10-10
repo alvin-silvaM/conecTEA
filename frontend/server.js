@@ -1,4 +1,4 @@
-// Servidor simples (sem dependências): serve a pasta /public e encaminha /escolas para o backend.
+// Servidor simples (sem dependências): serve a pasta /public e encaminha /escolas, /cuidadores, /alunos e /health para o backend.
 // O backend não habilita CORS, então o proxy evita o bloqueio do navegador.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -12,7 +12,7 @@ const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public')
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript' };
 
 http.createServer((req, res) => {
-  if (req.url.startsWith('/escolas')) {
+  if (/^\/(escolas|cuidadores|alunos|health)(\/|\?|$)/.test(req.url)) {
     const proxy = http.request(
       { hostname: API.hostname, port: API.port, path: req.url, method: req.method, headers: { ...req.headers, host: API.host } },
       (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); }
@@ -26,7 +26,7 @@ http.createServer((req, res) => {
   }
 
   const arquivo = path.join(PUBLIC, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
-  if (!arquivo.startsWith(PUBLIC) || !fs.existsSync(arquivo) || fs.statSync(arquivo).isDirectory()) {
+  if (!arquivo.startsWith(PUBLIC + path.sep) || !fs.existsSync(arquivo) || fs.statSync(arquivo).isDirectory()) {
     res.writeHead(404); return res.end('Não encontrado');
   }
   res.writeHead(200, { 'Content-Type': TIPOS[path.extname(arquivo)] || 'application/octet-stream' });
