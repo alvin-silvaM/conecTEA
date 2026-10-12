@@ -1,11 +1,18 @@
 import jwt from "jsonwebtoken";
-import { EscolaModel } from "../models/escola.model.js";
-import { CuidadorModel } from "../models/cuidador.model.js";
-import { validarObjectId } from "../utils/validacao.js";
+import { firestore } from "../database/firestore.js";
+import { COLECAO_ESCOLAS } from "../models/escola.model.js";
+import { COLECAO_CUIDADORES } from "../models/cuidador.model.js";
+import { idSchema } from "../utils/validacao.js";
 import { responderErro } from "../utils/erros.js";
 
 const naoAutorizado = (res) =>
     res.status(401).json({ message: "Token ausente, inválido ou expirado" });
+
+// Lê um documento e só o devolve se existir e estiver ativo
+const buscarAtivo = async (colecao, id) => {
+    const doc = await firestore().collection(colecao).doc(id).get();
+    return doc.exists && doc.data().ativo === true ? doc : null;
+};
 
 // Valida o JWT e confere no banco se a conta ainda existe e está ativa.
 // Assim, excluir ou desativar um cuidador/escola corta o acesso na hora, sem esperar o token expirar.
@@ -22,24 +29,24 @@ export const autenticar = async (req, res, next) => {
             return naoAutorizado(res);
         }
 
-        if (!validarObjectId(payload.sub) || !["escola", "cuidador"].includes(payload.tipo)) {
+        if (!idSchema.safeParse(payload.sub).success || !["escola", "cuidador"].includes(payload.tipo)) {
             return naoAutorizado(res);
         }
 
         if (payload.tipo === "escola") {
-            const escola = await EscolaModel.findOne({ _id: payload.sub, ativo: true }).select("_id");
+            const escola = await buscarAtivo(COLECAO_ESCOLAS, payload.sub);
             if (!escola) return naoAutorizado(res);
-            req.auth = { tipo: "escola", id: escola._id, escolaId: escola._id };
+            req.auth = { tipo: "escola", id: escola.id, escolaId: escola.id };
             return next();
         }
 
-        const cuidador = await CuidadorModel.findOne({ _id: payload.sub, ativo: true }).select("_id escola");
+        const cuidador = await buscarAtivo(COLECAO_CUIDADORES, payload.sub);
         if (!cuidador) return naoAutorizado(res);
 
-        const escolaAtiva = await EscolaModel.exists({ _id: cuidador.escola, ativo: true });
+        const escolaAtiva = await buscarAtivo(COLECAO_ESCOLAS, cuidador.data().escola);
         if (!escolaAtiva) return naoAutorizado(res);
 
-        req.auth = { tipo: "cuidador", id: cuidador._id, escolaId: cuidador.escola };
+        req.auth = { tipo: "cuidador", id: cuidador.id, escolaId: escolaAtiva.id };
         return next();
 
     } catch (erro) {

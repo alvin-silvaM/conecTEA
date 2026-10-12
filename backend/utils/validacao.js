@@ -1,30 +1,49 @@
-import mongoose from "mongoose";
+import { z } from "zod";
 
-// Validações de tipo e formato. Tudo que vem de req.body é tratado como não confiável:
-// qualquer valor que não seja string (objeto, array, número) é rejeitado antes de chegar ao banco.
+// Blocos de validação (Zod) compartilhados pelos models. Tudo que vem de req.body/params é tratado
+// como não confiável: tipos errados (objeto, array, número) são rejeitados antes de chegar ao banco.
 
-export const ehTexto = (valor, max = 200) =>
-    typeof valor === "string" && valor.trim().length > 0 && valor.length <= max;
+export const OBRIGATORIO = "Campos obrigatórios não informados";
 
-export const validarCNPJ = (valor) => typeof valor === "string" && /^\d{14}$/.test(valor);
+// Campo ausente -> mensagem de obrigatório; demais falhas de tipo -> mensagem do campo
+const erroDe = (invalida) => (iss) => (iss.input === undefined ? OBRIGATORIO : invalida);
 
-export const validarEmail = (valor) =>
-    typeof valor === "string" && valor.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+// Id de documento do Firestore (ids automáticos têm 20 caracteres). Restringir o formato evita
+// ids com "/" ou ".." que mudariam o caminho do documento.
+export const idSchema = z
+    .string({ error: erroDe("Identificador inválido") })
+    .regex(/^[A-Za-z0-9_-]{1,64}$/, "Identificador inválido");
+
+export const textoSchema = (invalida, max = 200) =>
+    z.string({ error: erroDe(invalida) }).trim().min(1, invalida).max(max, invalida);
+
+export const cnpjSchema = z
+    .string({ error: erroDe("CNPJ inválido: informe 14 dígitos, somente números") })
+    .regex(/^\d{14}$/, "CNPJ inválido: informe 14 dígitos, somente números");
+
+export const emailSchema = z
+    .string({ error: erroDe("Email inválido") })
+    .trim()
+    .toLowerCase()
+    .max(254, "Email inválido")
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email inválido");
 
 // Mínimo de 8 caracteres. O bcrypt ignora o que passa de 72 bytes, então limitamos nesse valor.
-export const validarSenha = (valor) =>
-    typeof valor === "string" && valor.length >= 8 && Buffer.byteLength(valor, "utf8") <= 72;
+export const senhaSchema = z
+    .string({ error: erroDe("Senha inválida: use no mínimo 8 caracteres") })
+    .min(8, "Senha inválida: use no mínimo 8 caracteres")
+    .refine((v) => Buffer.byteLength(v, "utf8") <= 72, "Senha inválida: use no máximo 72 bytes");
 
-export const validarTelefone = (valor) =>
-    typeof valor === "string" && /^[\d()+\-\s]{8,20}$/.test(valor);
+export const telefoneSchema = z
+    .string({ error: erroDe("Telefone inválido") })
+    .regex(/^[\d()+\-\s]{8,20}$/, "Telefone inválido");
 
-export const validarObjectId = (valor) =>
-    typeof valor === "string" && /^[a-f\d]{24}$/i.test(valor) && mongoose.isValidObjectId(valor);
-
-// Data no formato AAAA-MM-DD, existente e não futura.
-export const validarData = (valor) => {
-    if (typeof valor !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
-    const data = new Date(`${valor}T00:00:00.000Z`);
-    if (Number.isNaN(data.getTime()) || data.toISOString().slice(0, 10) !== valor) return false;
-    return data.getTime() <= Date.now();
-};
+// Data AAAA-MM-DD, existente e não futura.
+export const dataSchema = z
+    .string({ error: "Data de nascimento inválida: use AAAA-MM-DD" })
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Data de nascimento inválida: use AAAA-MM-DD")
+    .refine((v) => {
+        const d = new Date(`${v}T00:00:00.000Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+    }, "Data de nascimento inválida: use AAAA-MM-DD")
+    .refine((v) => new Date(`${v}T00:00:00.000Z`).getTime() <= Date.now(), "Data de nascimento não pode ser futura");

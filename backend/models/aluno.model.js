@@ -1,41 +1,48 @@
-import mongoose from "mongoose";
+import { z } from "zod";
+import { Timestamp } from "firebase-admin/firestore";
+import { dataSchema, idSchema, textoSchema } from "../utils/validacao.js";
 
+// Model do Aluno no Firestore (coleção "alunos").
 // Dados do aluno são sensíveis (LGPD): guardamos só o necessário para o MVP.
-// O aluno não tem login.
-const alunoSchema = new mongoose.Schema({
+// Campos do documento: nome, dataNascimento (Timestamp), cuidador (id), escola (id), ativo.
+export const COLECAO_ALUNOS = "alunos";
 
-    nome: {
-        type: String,
-        required: true,
-        trim: true,
-        maxlength: 120
-    },
+export const alunoParamsSchema = z.object({ id: idSchema });
 
-    dataNascimento: {
-        type: Date
-    },
-
-    // Cuidador principal (um por aluno). Um cuidador pode ter vários alunos.
-    cuidador: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Cuidador",
-        required: true,
-        index: true
-    },
-
-    // Escola dona do cadastro. Sempre preenchida a partir do token.
-    escola: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Escola",
-        required: true,
-        index: true
-    },
-
-    ativo: {
-        type: Boolean,
-        default: true
-    }
-
+// Criação: "escola" vem sempre do token e "ativo" começa true; campos extras são descartados.
+export const criarAlunoSchema = z.object({
+    nome: textoSchema("Nome inválido", 120),
+    dataNascimento: dataSchema.optional(),
+    cuidador: idSchema
 });
 
-export const AlunoModel = mongoose.model("Aluno", alunoSchema);
+// Atualização parcial: só os campos editáveis, ao menos um deles.
+export const atualizarAlunoSchema = z
+    .object({
+        nome: textoSchema("Nome inválido", 120).optional(),
+        dataNascimento: dataSchema.optional(),
+        cuidador: idSchema.optional(),
+        ativo: z.boolean({ error: "Campo ativo inválido" }).optional()
+    })
+    .refine((dados) => Object.keys(dados).length > 0, "Nenhum campo para atualizar");
+
+// Converte o que o cliente enviou para o formato gravado no Firestore
+export const alunoParaDocumento = (dados) => {
+    const doc = { ...dados };
+    if (doc.dataNascimento !== undefined) {
+        doc.dataNascimento = Timestamp.fromDate(new Date(`${doc.dataNascimento}T00:00:00.000Z`));
+    }
+    return doc;
+};
+
+// Converte um documento do Firestore para a resposta da API (mantém "_id", data em ISO e o
+// cuidador "populado" como antes). "escola" não é exposta.
+export const alunoParaResposta = (snapshot, cuidador) => {
+    const { escola, dataNascimento, cuidador: cuidadorId, ...resto } = snapshot.data();
+    return {
+        _id: snapshot.id,
+        ...resto,
+        ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {}),
+        cuidador: cuidador ?? { _id: cuidadorId }
+    };
+};

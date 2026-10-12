@@ -1,53 +1,27 @@
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
+import { z } from "zod";
+import { emailSchema, senhaSchema, telefoneSchema, textoSchema, idSchema } from "../utils/validacao.js";
 
-const cuidadorSchema = new mongoose.Schema({
+// Model do Cuidador no Firestore (coleção "cuidadores").
+// Campos do documento: nome, telefone, email, senha (hash bcrypt), escola (id da escola), ativo.
+export const COLECAO_CUIDADORES = "cuidadores";
 
-    nome: {
-        type: String,
-        required: true,
-        trim: true,
-        maxlength: 120
-    },
-
-    telefone: {
-        type: String,
-        required: true,
-        trim: true
-    },
-
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
-    },
-
-    senha: {
-        type: String,
-        required: true,
-        select: false
-    },
-
-    // Escola dona do cadastro. Sempre preenchida a partir do token, nunca do corpo da requisição.
-    escola: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Escola",
-        required: true,
-        index: true
-    },
-
-    ativo: {
-        type: Boolean,
-        default: true
-    }
-
+// A escola vem sempre do token, nunca do corpo: campos extras são descartados.
+export const criarCuidadorSchema = z.object({
+    nome: textoSchema("Nome inválido", 120),
+    telefone: telefoneSchema,
+    email: emailSchema,
+    senha: senhaSchema
 });
 
-cuidadorSchema.pre("save", async function () {
-    if (!this.isModified("senha")) return;
-    this.senha = await bcrypt.hash(this.senha, 10);
+export const loginCuidadorSchema = z.object({
+    email: emailSchema,
+    senha: z.string().min(1)
 });
 
-export const CuidadorModel = mongoose.model("Cuidador", cuidadorSchema);
+export const cuidadorParamsSchema = z.object({ id: idSchema });
+
+// Resposta da API: tudo, menos a senha
+export const cuidadorParaResposta = (id, dados) => {
+    const { senha, ...resto } = dados;
+    return { _id: id, ...resto };
+};

@@ -1,80 +1,42 @@
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
+import { z } from "zod";
+import { cnpjSchema, emailSchema, senhaSchema, telefoneSchema, textoSchema, OBRIGATORIO } from "../utils/validacao.js";
 
-const escolaSchema = new mongoose.Schema({
+// Model da Escola no Firestore (coleção "escolas").
+// Campos do documento: cnpj, razaoSocial, endereco{numero,rua,municipio,estado}, telefone1,
+// telefone2?, email, senha (hash bcrypt), ativo.
+export const COLECAO_ESCOLAS = "escolas";
 
-    cnpj: {
-        type: String,
-        required: true,
-        unique: true,
-        match: /^\d{14}$/
+const enderecoSchema = z.object(
+    {
+        numero: z
+            .number({ error: (i) => (i.input === undefined ? OBRIGATORIO : "Endereço incompleto ou inválido") })
+            .int("Endereço incompleto ou inválido")
+            .positive("Endereço incompleto ou inválido"),
+        rua: textoSchema("Endereço incompleto ou inválido", 200),
+        municipio: textoSchema("Endereço incompleto ou inválido", 120),
+        estado: textoSchema("Endereço incompleto ou inválido", 50)
     },
+    { error: (i) => (i.input === undefined ? OBRIGATORIO : "Endereço incompleto") }
+);
 
-    razaoSocial: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true
-    },
-
-    endereco: {
-
-        numero: {
-            type: Number,
-            required: true
-        },
-
-        rua: {
-            type: String,
-            required: true
-        },
-
-        municipio: {
-            type: String,
-            required: true
-        },
-
-        estado: {
-            type: String,
-            required: true
-        }
-
-    },
-
-    telefone1: {
-        type: String,
-        required: true
-    },
-
-    telefone2: {
-        type: String
-    },
-
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true
-    },
-
-    senha: {
-        type: String,
-        required: true,
-        select: false
-    },
-
-    ativo: {
-        type: Boolean,
-        default: true
-    }
-
+// Cadastro. Campos fora da lista (ex.: ativo, _id) são descartados: "ativo" começa sempre true.
+export const cadastrarEscolaSchema = z.object({
+    cnpj: cnpjSchema,
+    razaoSocial: textoSchema("Razão social inválida", 200),
+    endereco: enderecoSchema,
+    telefone1: telefoneSchema,
+    telefone2: telefoneSchema.optional(),
+    email: emailSchema,
+    senha: senhaSchema
 });
 
-// Gera o hash da senha antes de salvar (somente se a senha foi criada/alterada)
-escolaSchema.pre("save", async function () {
-    if (!this.isModified("senha")) return;
-    this.senha = await bcrypt.hash(this.senha, 10);
+export const loginEscolaSchema = z.object({
+    cnpj: cnpjSchema,
+    senha: z.string().min(1)
 });
 
-export const EscolaModel = mongoose.model("Escola", escolaSchema);
+// Resposta da API: tudo, menos a senha
+export const escolaParaResposta = (id, dados) => {
+    const { senha, ...resto } = dados;
+    return { _id: id, ...resto };
+};

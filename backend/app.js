@@ -2,21 +2,23 @@ import 'dotenv/config'; // precisa vir primeiro: os módulos abaixo leem process
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { conexao } from './database/connection.js';
+import { iniciarFirestore, validarConfigFirebase } from './database/firestore.js';
 import routerEscolas from './routes/escola.route.js';
 import routerCuidadores from './routes/cuidador.route.js';
 import routerAlunos from './routes/aluno.route.js';
 
 // Falha logo na inicialização se a configuração essencial estiver ausente ou fraca
-if (!process.env.MONGO_URI) {
-    console.error("Configuração ausente: defina MONGO_URI no .env");
-    process.exit(1);
-}
 if (!process.env.SECRET || process.env.SECRET.length < 32) {
     console.error(
         "Configuração insegura: SECRET precisa ter pelo menos 32 caracteres. " +
         "Gere uma com: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
     );
+    process.exit(1);
+}
+
+const errosFirebase = validarConfigFirebase();
+if (errosFirebase.length > 0) {
+    console.error(`Configuração do Firebase inválida: ${errosFirebase.join("; ")}`);
     process.exit(1);
 }
 
@@ -54,15 +56,16 @@ app.use((erro, req, res, next) => {
     return res.status(500).json({ message: "Erro interno do servidor" });
 });
 
-// Conexão com o banco de dados e inicialização do servidor
+// Conexão com o Firestore e inicialização do servidor
 (async () => {
     try {
-        await conexao();
+        await iniciarFirestore();
         app.listen(PORT, () => {
             console.log(`Servidor rodando na porta ${PORT}`);
         });
 
     } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
+        process.exit(1);
     }
 })();
