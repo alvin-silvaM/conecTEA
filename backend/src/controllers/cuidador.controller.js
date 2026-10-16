@@ -2,6 +2,8 @@ import {
     criarCuidadorService,
     listarCuidadoresService,
     buscarCuidadorService,
+    buscarCuidadorDaEscolaService,
+    atualizarCuidadorService,
     removerCuidadorService,
     loginCuidadorService
 } from "../services/cuidador.service.js";
@@ -37,6 +39,26 @@ export const meusDados = async (req, res) => {
         return res.status(200).json({ cuidador });
     } catch (erro) {
         return responderErro(res, erro);
+    }
+};
+
+// Escola consulta um cuidador dela
+export const buscarCuidador = async (req, res) => {
+    try {
+        const cuidador = await buscarCuidadorDaEscolaService(req.auth.escolaId, req.validado.params.id);
+        return res.status(200).json({ cuidador });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};
+
+// Escola edita um cuidador dela
+export const atualizarCuidador = async (req, res) => {
+    try {
+        const cuidador = await atualizarCuidadorService(req.auth.escolaId, req.validado.params.id, req.validado.body);
+        return res.status(200).json({ message: "Cuidador atualizado", cuidador });
+    } catch (erro) {
+        return responderErro(res, erro, "Erro ao atualizar cuidador");
     }
 };
 

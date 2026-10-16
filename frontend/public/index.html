@@ -1,117 +1,19 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ConecTEA - Teste da API</title>
-  <link rel="stylesheet" href="/style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>conecTEA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>ConecTEA · Teste da API</h1>
-    <span id="status" class="badge">verificando…</span>
-    <span id="sessao" class="badge on" hidden></span>
-    <button id="btn-logout" type="button" class="sair" hidden>Sair</button>
-  </header>
-
-  <p id="aviso" class="aviso"></p>
-
-  <main>
-    <!-- ============ Ninguém logado ============ -->
-    <div class="view" data-view="visitante">
-      <section>
-        <h2>Cadastro de Escola <small>POST /escolas/cadastro</small></h2>
-        <button id="btn-preencher" type="button" class="secundario">Preencher automaticamente</button>
-        <form id="form-cadastro">
-          <label>CNPJ (14 dígitos) <input name="cnpj" required pattern="\d{14}" maxlength="14" /></label>
-          <label>Razão social <input name="razaoSocial" required /></label>
-          <fieldset>
-            <legend>Endereço</legend>
-            <label>Rua <input name="rua" required /></label>
-            <label>Número <input name="numero" type="number" min="1" required /></label>
-            <label>Município <input name="municipio" required /></label>
-            <label>Estado <input name="estado" required /></label>
-          </fieldset>
-          <label>Telefone 1 <input name="telefone1" required /></label>
-          <label>Telefone 2 (opcional) <input name="telefone2" /></label>
-          <label>Email <input name="email" type="email" required /></label>
-          <label>Senha (mín. 8 caracteres) <input name="senha" type="password" minlength="8" required /></label>
-          <button type="submit">Cadastrar</button>
-        </form>
-        <pre id="res-cadastro" class="resultado"></pre>
-      </section>
-
-      <section>
-        <h2>Entrar como Escola <small>POST /escolas</small></h2>
-        <form id="form-login">
-          <label>CNPJ (14 dígitos) <input name="cnpj" required pattern="\d{14}" maxlength="14" /></label>
-          <label>Senha <input name="senha" type="password" required /></label>
-          <button type="submit">Entrar como escola</button>
-        </form>
-        <pre id="res-login" class="resultado"></pre>
-
-        <h2 class="espaco">Entrar como Cuidador <small>POST /cuidadores/login</small></h2>
-        <p id="dica-cuidador" class="dica"></p>
-        <form id="form-login-cuidador">
-          <label>Email <input name="email" type="email" required /></label>
-          <label>Senha <input name="senha" type="password" required /></label>
-          <button type="submit">Entrar como cuidador</button>
-        </form>
-        <pre id="res-login-cuidador" class="resultado"></pre>
-      </section>
-    </div>
-
-    <!-- ============ Logado como escola ============ -->
-    <div class="view" data-view="escola" hidden>
-      <section>
-        <h2>Cuidadores <small>POST/GET/DELETE /cuidadores</small></h2>
-        <p class="dica">A escola cadastra os cuidadores. Cadastre pelo menos um antes de cadastrar alunos.</p>
-        <button id="btn-preencher-cuidador" type="button" class="secundario">Preencher automaticamente</button>
-        <form id="form-cuidador">
-          <label>Nome <input name="nome" required /></label>
-          <label>Telefone <input name="telefone" required /></label>
-          <label>Email <input name="email" type="email" required /></label>
-          <label>Senha (mín. 8 caracteres) <input name="senha" type="password" minlength="8" required /></label>
-          <button type="submit">Cadastrar cuidador</button>
-        </form>
-        <pre id="res-cuidador" class="resultado"></pre>
-        <h3>Cuidadores da escola</h3>
-        <ul id="lista-cuidadores" class="lista"></ul>
-      </section>
-
-      <section>
-        <h2>Alunos <small>POST/GET/DELETE /alunos</small></h2>
-        <p class="dica">A escola vê todos os alunos dela. Cada aluno tem um cuidador principal.</p>
-        <form id="form-aluno">
-          <label>Nome <input name="nome" required /></label>
-          <label>Data de nascimento (opcional) <input name="dataNascimento" type="date" /></label>
-          <label>Cuidador principal
-            <select name="cuidador" required></select>
-          </label>
-          <p id="aviso-sem-cuidador" class="dica" hidden>Cadastre um cuidador para poder cadastrar alunos.</p>
-          <button type="submit">Cadastrar aluno</button>
-        </form>
-        <pre id="res-aluno" class="resultado"></pre>
-        <h3>Alunos da escola</h3>
-        <ul id="lista-alunos-escola" class="lista"></ul>
-      </section>
-    </div>
-
-    <!-- ============ Logado como cuidador ============ -->
-    <div class="view" data-view="cuidador" hidden>
-      <section>
-        <h2>Meus dados <small>GET /cuidadores/eu</small></h2>
-        <ul id="meus-dados" class="lista"></ul>
-      </section>
-
-      <section>
-        <h2>Meus alunos <small>GET /alunos</small></h2>
-        <p class="dica">Aqui aparecem só os alunos vinculados a você. O cuidador não altera o cadastro dos alunos.</p>
-        <ul id="lista-alunos-cuidador" class="lista"></ul>
-      </section>
-    </div>
-  </main>
-
-  <script type="module" src="/main.js"></script>
+  <div id="app"></div>
+  <dialog id="modal" aria-labelledby="modal-titulo"></dialog>
+  <div id="avisos" class="avisos" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

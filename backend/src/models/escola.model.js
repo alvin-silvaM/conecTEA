@@ -30,6 +30,18 @@ export const cadastrarEscolaSchema = z.object({
     senha: senhaSchema
 });
 
+// Edição parcial da própria escola. CNPJ e "ativo" não são editáveis. telefone2: null remove o campo.
+export const atualizarEscolaSchema = z
+    .object({
+        razaoSocial: textoSchema("Razão social inválida", 200).optional(),
+        endereco: enderecoSchema.optional(),
+        telefone1: telefoneSchema.optional(),
+        telefone2: telefoneSchema.nullable().optional(),
+        email: emailSchema.optional(),
+        senha: senhaSchema.optional()
+    })
+    .refine((dados) => Object.keys(dados).length > 0, "Nenhum campo para atualizar");
+
 export const loginEscolaSchema = z.object({
     cnpj: cnpjSchema,
     senha: z.string().min(1)

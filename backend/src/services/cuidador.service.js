@@ -39,6 +39,43 @@ export const buscarCuidadorService = async (id) => {
     return cuidadorParaResposta(doc.id, doc.data());
 };
 
+// READ (um) pela escola dona do cuidador; 404 também para cuidador de outra escola
+export const buscarCuidadorDaEscolaService = async (escolaId, id) => {
+    const cuidador = await buscarCuidadorService(id);
+    if (cuidador.escola !== String(escolaId)) throw new ErroHttp(404, "Cuidador não encontrado");
+    return cuidador;
+};
+
+// UPDATE parcial pela escola. Trocar o email troca também a trava de unicidade, na mesma transação.
+export const atualizarCuidadorService = async (escolaId, id, alteracoes) => {
+    const { senha, ...resto } = alteracoes;
+    const mudancas = { ...resto };
+    if (senha !== undefined) mudancas.senha = await bcrypt.hash(senha, 10);
+
+    const ref = cuidadores().doc(id);
+
+    await firestore().runTransaction(async (t) => {
+        const doc = await t.get(ref);
+        if (!doc.exists || doc.data().escola !== String(escolaId)) {
+            throw new ErroHttp(404, "Cuidador não encontrado");
+        }
+
+        const trocouEmail = resto.email !== undefined && resto.email !== doc.data().email;
+        const travaNova = trocouEmail ? refUnico("cuidador_email", resto.email) : null;
+        if (travaNova && (await t.get(travaNova)).exists) {
+            throw new ErroHttp(409, "Endereço de email já utilizado");
+        }
+
+        t.update(ref, mudancas);
+        if (trocouEmail) {
+            t.delete(refUnico("cuidador_email", doc.data().email));
+            t.create(travaNova, { cuidador: id });
+        }
+    });
+
+    return buscarCuidadorService(id);
+};
+
 export const removerCuidadorService = async (escolaId, id) => {
     const ref = cuidadores().doc(id);
 

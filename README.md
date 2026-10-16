@@ -13,7 +13,9 @@ aplicação web para comunicação de pessoas com TEA não verbal
 2. Dentro de `backend/`, rode `npm install` e `npm start` (use `npm run dev` para recarregar ao salvar).
 3. Se tudo estiver certo, o console mostra `Conectado ao Firestore` e `Servidor rodando na porta 3000`.
 
-**Front-end de teste** (`frontend/`, sem dependências): `npm start` (porta 8080). Ele serve a página de teste e encaminha `/escolas`, `/cuidadores`, `/alunos` e `/health` para o back-end (`API_URL`, padrão `http://localhost:3000`).
+**Front-end** (`frontend/`, HTML, CSS e JavaScript puros, sem dependências): com o back-end rodando, abra outro terminal e rode `cd frontend` e `npm start`. Depois acesse http://localhost:8080. O servidor do front-end entrega a interface e encaminha `/escolas`, `/cuidadores`, `/alunos` e `/health` para o back-end, então não precisa configurar CORS. Variáveis opcionais: `PORT` (padrão 8080) e `API_URL` (padrão `http://localhost:3000`).
+
+Telas: entrada (login de escola ou cuidador e cadastro de escola) e, depois de entrar, **Alunos**, **Cuidadores** e **Minha escola** (perfil escola) ou **Alunos** e **Meus dados** (perfil cuidador, somente leitura). Cada tela tem busca, janelas para criar, editar e excluir, e mostra os erros de validação da API junto de cada campo. Os campos de CNPJ (14 números), telefone (DDD + 10 ou 11 números) e número do endereço aceitam só dígitos, com máscara e limite de tamanho; os demais campos têm o mesmo limite de caracteres que o back-end valida. Nos formulários de cadastro (escola, cuidador e aluno) o botão **Dados de exemplo** preenche os campos com dados fictícios válidos, para testar rápido (a senha gerada fica visível antes de salvar). O token fica só na sessão da aba (`sessionStorage`).
 
 **Teste de regras de acesso** (com o back-end rodando num projeto Firebase de teste, pois cria dados): `node backend/scripts/smoke-test.mjs` (ou `npm run smoke` dentro de `backend/`).
 
@@ -35,6 +37,10 @@ backend/
 ├── requests.http           # exemplos de requisições
 ├── .env.example, package.json, package-lock.json
 └── secret/                 # local, ignorado pelo Git (credenciais)
+
+frontend/
+├── server.js               # serve public/ e encaminha a API para o back-end
+└── public/                 # index.html, styles.css, app.js e icons.svg
 ```
 
 ### Rotas
@@ -44,7 +50,8 @@ backend/
 | `GET /health` | público |
 | `POST /escolas/cadastro`, `POST /escolas` (login) | público |
 | `POST /cuidadores/login` | público |
-| `POST /cuidadores`, `GET /cuidadores`, `DELETE /cuidadores/:id` | escola |
+| `GET /escolas`, `GET /escolas/eu`, `PATCH /escolas/eu`, `DELETE /escolas/eu` | escola (somente a própria) |
+| `POST /cuidadores`, `GET /cuidadores`, `GET /cuidadores/:id`, `PATCH /cuidadores/:id`, `DELETE /cuidadores/:id` | escola |
 | `GET /cuidadores/eu` | cuidador |
 | `POST /alunos`, `PATCH /alunos/:id`, `DELETE /alunos/:id` | escola |
 | `GET /alunos`, `GET /alunos/:id` | escola (todos da escola) e cuidador (só os vinculados a ele) |
@@ -111,7 +118,7 @@ Erros esperados devolvem `{ "message": "..." }`. Erros de validação (400) incl
 | Perfil | O que pode |
 |---|---|
 | **Público** | `GET /health`, cadastro e login de escola, login de cuidador |
-| **Escola** | gerenciar cuidadores (`POST`, `GET`, `DELETE`) e alunos (`POST`, `GET`, `PATCH`, `DELETE`) da própria escola |
+| **Escola** | consultar, editar e excluir a própria escola (`/escolas/eu`); gerenciar cuidadores (`POST`, `GET`, `PATCH`, `DELETE`) e alunos (`POST`, `GET`, `PATCH`, `DELETE`) da própria escola |
 | **Cuidador** | `GET /cuidadores/eu`; `GET /alunos` e `GET /alunos/:id` apenas dos alunos vinculados a ele |
 
 **Isolamento de dados:** a escola é sempre identificada pelo **token**, nunca pelo corpo ou pela URL. Uma escola nunca enxerga nem altera dados de outra, e um cuidador nunca enxerga alunos de outro cuidador. Nesses casos a API responde **404** (e não 403), para não revelar que o registro existe.
@@ -127,7 +134,7 @@ Cuidador 1 ── N Aluno         (aluno.cuidador: um cuidador principal por alu
 Regras:
 - Todo aluno precisa de um cuidador **ativo e da mesma escola** ao ser criado ou ao trocar de cuidador; senão `400 "Cuidador inválido"`.
 - Um cuidador **não pode ser excluído** enquanto houver alunos vinculados (`409`). Reatribua os alunos com `PATCH /alunos/:id` e depois exclua.
-- Não há exclusão em cascata e não existe rota para excluir escola.
+- Não há exclusão em cascata. A escola só pode ser excluída (`DELETE /escolas/eu`) quando não tiver cuidadores nem alunos (`409`).
 - Email de escola é único entre escolas; email de cuidador é único entre todos os cuidadores. CNPJ e razão social de escola também são únicos.
 - Os relacionamentos são guardados como ids; nas respostas de aluno o cuidador vem "expandido" (`_id`, `nome`, `telefone`, `email`).
 
@@ -135,7 +142,7 @@ Regras:
 
 ### Escola
 
-**Operações disponíveis:** cadastro e login. **Não existem** consulta, atualização nem exclusão de escola.
+**Operações disponíveis:** cadastro, login, listagem, consulta, edição e exclusão. Como cada escola só enxerga a si mesma, consulta, edição e exclusão usam `/escolas/eu` (a escola vem do token) e a listagem devolve uma lista com apenas a escola logada.
 
 #### Propriedades
 
@@ -211,11 +218,75 @@ Público (limite de 10 falhas a cada 15 minutos por IP).
 | 403 | `{ "message": "Conta inativa" }` (só após a senha estar correta) |
 | 429 | muitas tentativas |
 
+#### GET /escolas e GET /escolas/eu — listar e consultar a escola logada
+Autenticação: Bearer, perfil **escola**. Sem parâmetros.
+
+**200 OK** (`GET /escolas/eu`)
+```json
+{
+  "escola": {
+    "_id": "Kx9aP2mQ7rTz1BwN4cLd",
+    "cnpj": "11222333000181",
+    "razaoSocial": "Escola Exemplo",
+    "endereco": { "numero": 10, "rua": "Rua das Flores", "municipio": "Fortaleza", "estado": "CE" },
+    "telefone1": "(85) 99999-0000",
+    "email": "contato@escolaexemplo.test",
+    "ativo": true
+  }
+}
+```
+`GET /escolas` devolve `{ "escolas": [ { ...a mesma escola... } ] }`. Erros: 401, 403 (token de cuidador).
+
+#### PATCH /escolas/eu — editar a escola logada
+Autenticação: Bearer, perfil **escola**. Atualização **parcial**: envie só o que mudar. Campos aceitos: `razaoSocial`, `endereco` (objeto completo), `telefone1`, `telefone2` (`null` remove), `email` e `senha` (mesmas regras do cadastro). `cnpj` e `ativo` não mudam; outros campos são ignorados. É preciso enviar ao menos um campo aceito.
+
+```json
+{ "telefone2": "(85) 3222-0000", "email": "novo@escolaexemplo.test" }
+```
+
+**200 OK**
+```json
+{
+  "message": "Escola atualizada",
+  "escola": {
+    "_id": "Kx9aP2mQ7rTz1BwN4cLd",
+    "cnpj": "11222333000181",
+    "razaoSocial": "Escola Exemplo",
+    "endereco": { "numero": 10, "rua": "Rua das Flores", "municipio": "Fortaleza", "estado": "CE" },
+    "telefone1": "(85) 99999-0000",
+    "telefone2": "(85) 3222-0000",
+    "email": "novo@escolaexemplo.test",
+    "ativo": true
+  }
+}
+```
+
+| Código | Quando |
+|---|---|
+| 400 | validação (mesmas mensagens do cadastro) ou `"Nenhum campo para atualizar"` |
+| 401 / 403 | sem token válido / perfil não é escola |
+| 409 | `"Endereço de email já utilizado"` ou `"Já existe uma escola cadastrada com esses dados"` |
+
+#### DELETE /escolas/eu — excluir a escola logada
+Autenticação: Bearer, perfil **escola**.
+
+**200 OK**
+```json
+{ "message": "Escola excluída" }
+```
+
+| Código | Quando |
+|---|---|
+| 401 / 403 | sem token válido / perfil não é escola |
+| 409 | `"Escola possui cuidadores ou alunos: exclua-os antes de excluir a escola"` |
+
+Depois de excluída, o token deixa de valer e CNPJ, email e razão social podem ser cadastrados novamente.
+
 ---
 
 ### Cuidador
 
-**Operações disponíveis:** cadastro, listagem (da escola), consulta dos próprios dados, exclusão e login. **Não existem** atualização (PUT/PATCH) nem consulta de um cuidador por id.
+**Operações disponíveis:** cadastro, listagem (da escola), consulta por id (pela escola), consulta dos próprios dados (pelo cuidador), edição parcial (PATCH, pela escola), exclusão e login. Não existe PUT.
 
 #### Propriedades
 
@@ -227,7 +298,7 @@ Público (limite de 10 falhas a cada 15 minutos por IP).
 | `email` | string | sim | formato de email, até 254 caracteres; vai para minúsculas; único entre cuidadores; usado no login |
 | `senha` | string | sim (só envio) | mínimo 8 caracteres e no máximo 72 bytes |
 | `escola` | string | só resposta | id da escola; vem do token, nunca do corpo |
-| `ativo` | boolean | só resposta | sempre `true` no cadastro; não é alterável pela API |
+| `ativo` | boolean | só resposta (editável por PATCH) | `true` no cadastro; a escola pode desativar com `PATCH /cuidadores/:id` |
 
 #### POST /cuidadores — cadastrar cuidador
 Autenticação: Bearer, perfil **escola**.
@@ -299,6 +370,60 @@ Autenticação: Bearer, perfil **cuidador**.
 }
 ```
 Erros: 401 (inclui cuidador excluído ou inativo); 403 (token de escola).
+
+#### GET /cuidadores/:id — consultar cuidador
+Autenticação: Bearer, perfil **escola**. Só devolve cuidador da própria escola.
+
+**200 OK**
+```json
+{
+  "cuidador": {
+    "_id": "Qm3rT8vZ1aLx6NcPd2Wy",
+    "nome": "Maria Exemplo",
+    "telefone": "(85) 98888-0001",
+    "email": "maria@exemplo.test",
+    "escola": "Kx9aP2mQ7rTz1BwN4cLd",
+    "ativo": true
+  }
+}
+```
+
+| Código | Quando |
+|---|---|
+| 400 | `"Identificador inválido"` |
+| 401 / 403 | sem token válido / perfil não é escola |
+| 404 | `"Cuidador não encontrado"` (inexistente ou de outra escola) |
+
+#### PATCH /cuidadores/:id — atualizar cuidador
+Autenticação: Bearer, perfil **escola**. Atualização **parcial**: envie só o que mudar. Campos aceitos: `nome`, `telefone`, `email`, `senha`, `ativo` (mesmas regras do cadastro; `ativo` precisa ser boolean). A escola do cuidador não muda; outros campos são ignorados. É preciso enviar ao menos um campo aceito.
+
+```json
+{ "telefone": "(85) 98888-9999", "ativo": true }
+```
+
+**200 OK**
+```json
+{
+  "message": "Cuidador atualizado",
+  "cuidador": {
+    "_id": "Qm3rT8vZ1aLx6NcPd2Wy",
+    "nome": "Maria Exemplo",
+    "telefone": "(85) 98888-9999",
+    "email": "maria@exemplo.test",
+    "escola": "Kx9aP2mQ7rTz1BwN4cLd",
+    "ativo": true
+  }
+}
+```
+
+| Código | Quando |
+|---|---|
+| 400 | validação (`"Nome inválido"`, `"Telefone inválido"`, `"Email inválido"`, `"Senha inválida: use no mínimo 8 caracteres"`, `"Campo ativo inválido"`, `"Nenhum campo para atualizar"`, `"Identificador inválido"`) |
+| 401 / 403 | sem token válido / perfil não é escola |
+| 404 | `"Cuidador não encontrado"` (inexistente ou de outra escola) |
+| 409 | `"Endereço de email já utilizado"` |
+
+Trocar o email libera o antigo para novo cadastro. Desativar um cuidador (`ativo: false`) impede o login dele e corta o token na hora.
 
 #### DELETE /cuidadores/:id — excluir cuidador
 Autenticação: Bearer, perfil **escola**. Só exclui cuidador da própria escola.
