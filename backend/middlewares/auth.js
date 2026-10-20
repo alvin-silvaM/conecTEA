@@ -5,8 +5,7 @@ import { COLECAO_CUIDADORES } from "../models/cuidador.model.js";
 import { idSchema } from "../utils/validacao.js";
 import { responderErro } from "../utils/erros.js";
 
-const naoAutorizado = (res) =>
-    res.status(401).json({ message: "Token ausente, inválido ou expirado" });
+const naoAutorizado = (res) => res.status(401).json({ message: "Token ausente, inválido ou expirado" });
 
 // Lê um documento e só o devolve se existir e estiver ativo
 const buscarAtivo = async (colecao, id) => {
@@ -14,10 +13,11 @@ const buscarAtivo = async (colecao, id) => {
     return doc.exists && doc.data().ativo === true ? doc : null;
 };
 
-// Valida o JWT e confere no banco se a conta ainda existe e está ativa.
+// Valida o JWT e confere no banco se a conta ainda existe e está ativa. 
 // Assim, excluir ou desativar um cuidador/escola corta o acesso na hora, sem esperar o token expirar.
 // Preenche req.auth = { tipo, id, escolaId }. O escolaId vem SEMPRE daqui, nunca do body/params.
 export const autenticar = async (req, res, next) => {
+    
     try {
         const [esquema, token] = (req.headers.authorization || "").split(" ");
         if (esquema !== "Bearer" || !token) return naoAutorizado(res);
