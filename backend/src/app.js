@@ -58,6 +58,7 @@ app.use((erro, req, res, next) => {
 
 // Conexão com o Firestore e inicialização do servidor
 (async () => {
+
     try {
         await iniciarFirestore();
         app.listen(PORT, () => {
