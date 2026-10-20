@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Arquitetura: TODO acesso ao Firestore é feito pelo backend com o Firebase Admin SDK,
+// que ignora estas regras (a autenticação JWT, a autorização por escola/cuidador e a
+// validação com Zod ficam na API). Portanto, o acesso direto de clientes (web/mobile
+// usando o SDK cliente) fica totalmente bloqueado.
+//
+// Se um dia o front-end acessar o Firestore diretamente, será preciso trocar por regras
+// baseadas em request.auth (Firebase Authentication) e restringir por escola/cuidador.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

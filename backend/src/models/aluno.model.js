@@ -1,83 +1,48 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import { z } from "zod";
+import { Timestamp } from "firebase-admin/firestore";
+import { dataSchema, idSchema, textoSchema } from "../utils/validacao.js";
 
-const alunoSchema = new mongoose.Schema({
+// Model do Aluno no Firestore (coleção "alunos").
+// Dados do aluno são sensíveis (LGPD): guardamos só o necessário para o MVP.
+// Campos do documento: nome, dataNascimento (Timestamp), cuidador (id), escola (id), ativo.
+export const COLECAO_ALUNOS = "alunos";
 
-    nome: {
-        type: String,
-        required: true,
-        trim: true
-    },
+export const alunoParamsSchema = z.object({ id: idSchema });
 
-    data_nascimento: {
-        type: Date,
-        required: true,
-    },
+// Criação: "escola" vem sempre do token e "ativo" começa true; campos extras são descartados.
+export const criarAlunoSchema = z.object({
+    nome: textoSchema("Nome inválido", 120),
+    dataNascimento: dataSchema.optional(),
+    cuidador: idSchema
+});
 
-    vinculos: {
-        type: [{
-        usuario: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Usuario",
-            required: true
-        },
+// Atualização parcial: só os campos editáveis, ao menos um deles.
+export const atualizarAlunoSchema = z
+    .object({
+        nome: textoSchema("Nome inválido", 120).optional(),
+        dataNascimento: dataSchema.optional(),
+        cuidador: idSchema.optional(),
+        ativo: z.boolean({ error: "Campo ativo inválido" }).optional()
+    })
+    .refine((dados) => Object.keys(dados).length > 0, "Nenhum campo para atualizar");
 
-        tipo: {
-            type: String,
-            enum: ["responsavel", "cuidador_escolar"],
-            required: true
-        },
-
-        ativo: {
-            type: Boolean,
-            default: true
-        }
-
-    }],
-
-        required: true,
-
-        validate: {
-            validator: function (vinculos) {
-                return vinculos.length > 0;
-            },
-
-            message: "O aluno deve possuir pelo menos um vínculo"
-        }
-    },
-
-    matricula: {
-        type: String,
-        unique: true,
-        trim: true,
-        required: true
-    },
-
-    senha: {
-        type: String,
-        required: true,
-        select: false
-    },
-
-    escola: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Escola",
-        required: true
-    },
-
-    ativo: {
-        type: Boolean,
-        default: true
+// Converte o que o cliente enviou para o formato gravado no Firestore
+export const alunoParaDocumento = (dados) => {
+    const doc = { ...dados };
+    if (doc.dataNascimento !== undefined) {
+        doc.dataNascimento = Timestamp.fromDate(new Date(`${doc.dataNascimento}T00:00:00.000Z`));
     }
+    return doc;
+};
 
-})
-
-alunoSchema.pre("save", async function () {
-
-    if (!this.isModified("senha")) return;
-
-    this.senha = await bcrypt.hash(this.senha, 10);
-})
-
-export const AlunoModel = mongoose.model("Aluno", alunoSchema);
-
+// Converte um documento do Firestore para a resposta da API (mantém "_id", data em ISO e o
+// cuidador "populado" como antes). "escola" não é exposta.
+export const alunoParaResposta = (snapshot, cuidador) => {
+    const { escola, dataNascimento, cuidador: cuidadorId, ...resto } = snapshot.data();
+    return {
+        _id: snapshot.id,
+        ...resto,
+        ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {}),
+        cuidador: cuidador ?? { _id: cuidadorId }
+    };
+};

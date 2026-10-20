@@ -1,53 +1,59 @@
-import jwt from 'jsonwebtoken';
+import {
+    criarAlunoService,
+    listarAlunosService,
+    buscarAlunoService,
+    atualizarAlunoService,
+    removerAlunoService
+} from "../services/aluno.service.js";
+import { responderErro } from "../utils/erros.js";
 
-import { cadastrarAlunoService } from "../services/aluno.service.js";
+// A validação (Zod) acontece antes, no middleware validar() das rotas:
+// aqui req.validado já contém apenas dados válidos e permitidos.
 
-export const cadastrarAluno = async (req, res) => {
-
-    const {nome, data_nascimento, vinculos, matricula, senha} = req.body;
-    const escola = req.escola._id;
-
-    if (!nome || !data_nascimento || !vinculos || vinculos.length === 0 || !matricula || !senha) return res.status(400).json({message: "Cadastro incompleto"});
-
-    if (!req.escola) {
-        return res.status(401).json({message: "Cadastro não autorizado"});
-    }
-
-    if (!escola) return res.status(401).json({message: "Cadastro não autorizado"});
-
-    const alunoObject = {
-        nome, data_nascimento, vinculos, matricula, senha, escola
-    }
-
+// Escola cadastra um aluno e o vincula a um cuidador da própria escola
+export const criarAluno = async (req, res) => {
     try {
-
-        const alunoCadastrado = await cadastrarAlunoService(alunoObject);
-
-        return res.status(201).json({message: "Aluno cadastrado", alunoCadastrado});
-
-    } catch (error) {
-
-        return res.status(error.status || 500).json({message: error.message || "Erro ao cadastrar aluno"});
-    } 
-
-}
-
-export const loginAluno = async (req, res) => {
-
-    const {matricula, senha} = req.body;
-
-    if (!matricula || !senha) return res.status(400).json({message: "Dados de login incompletos"});
-
-    try {
-
-        const aluno = await loginAlunoService(matricula, senha);
-
-        const token = jwt.sign({_id: aluno._id, tipo: "aluno"}, process.env.SECRET, {expiresIn: "15d"});
-
-        return res.status(200).json({message: "login realizado com sucesso", token});
-
-    } catch (error) {
-
-        return res.status(error.status || 500).json({message: error.message || "Falha no login"})
+        const aluno = await criarAlunoService(req.auth.escolaId, req.validado.body);
+        return res.status(201).json({ message: "Aluno cadastrado", aluno });
+    } catch (erro) {
+        return responderErro(res, erro, "Erro ao cadastrar aluno");
     }
-}
+};
+
+// Escola vê todos os alunos; cuidador vê só os dele (o filtro está no service, a partir do token)
+export const listarAlunos = async (req, res) => {
+    try {
+        const alunos = await listarAlunosService(req.auth);
+        return res.status(200).json({ alunos });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};
+
+export const buscarAluno = async (req, res) => {
+    try {
+        const aluno = await buscarAlunoService(req.auth, req.validado.params.id);
+        return res.status(200).json({ aluno });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};
+
+// Somente a escola altera dados do aluno. Só os campos do schema de atualização são aceitos.
+export const atualizarAluno = async (req, res) => {
+    try {
+        const aluno = await atualizarAlunoService(req.auth.escolaId, req.validado.params.id, req.validado.body);
+        return res.status(200).json({ message: "Aluno atualizado", aluno });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};
+
+export const removerAluno = async (req, res) => {
+    try {
+        await removerAlunoService(req.auth.escolaId, req.validado.params.id);
+        return res.status(200).json({ message: "Aluno excluído" });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};

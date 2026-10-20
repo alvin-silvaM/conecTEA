@@ -1,75 +1,103 @@
-import bcrypt from 'bcrypt';
+import { firestore } from "../database/firestore.js";
+import { COLECAO_ALUNOS, alunoParaDocumento, alunoParaResposta } from "../models/aluno.model.js";
+import { COLECAO_CUIDADORES } from "../models/cuidador.model.js";
+import { ErroHttp } from "../utils/erros.js";
 
-import { AlunoModel } from "../models/aluno.model.js";
-import { EscolaModel } from "../models/escola.model.js";
-import { validarVinculos } from '../utils/entidades.util.js';
+// Armazenamento: Cloud Firestore. Relações são guardadas como ids (strings) e resolvidas aqui.
+const alunos = () => firestore().collection(COLECAO_ALUNOS);
+const cuidadores = () => firestore().collection(COLECAO_CUIDADORES);
 
-
-export const cadastrarAlunoService = async (alunoObject) => {
-
-    const escolaId = alunoObject.escola;
-    const matriculaAluno = alunoObject.matricula;
-    const vinculos = alunoObject.vinculos;
-
-    const escolaExiste = await EscolaModel.findById(escolaId);
-
-    if (!escolaExiste) {
-        const erro = new Error("Escola inexistente");
-        erro.status = 401;
-        throw erro;
+// Dentro de uma transação, garante que o cuidador existe, está ativo e pertence à MESMA escola
+// de quem faz a requisição. Ler na transação impede excluir o cuidador no meio da operação.
+const exigirCuidadorDaEscola = async (t, escolaId, cuidadorId) => {
+    const doc = await t.get(cuidadores().doc(cuidadorId));
+    if (!doc.exists || doc.data().escola !== String(escolaId) || doc.data().ativo !== true) {
+        throw new ErroHttp(400, "Cuidador inválido");
     }
+};
 
-    // Dispara erro se algum vinculo tiver inválido
-    await validarVinculos(vinculos);
+// Escola enxerga todos os alunos dela; cuidador enxerga apenas os alunos vinculados a ele.
+// Esse filtro é aplicado em TODA leitura, usando os ids do token.
+const consultaDeAcesso = (auth) => {
+    let consulta = alunos().where("escola", "==", String(auth.escolaId));
+    if (auth.tipo !== "escola") consulta = consulta.where("cuidador", "==", String(auth.id));
+    return consulta;
+};
 
-    const alunoExiste = await AlunoModel.findOne({matricula: matriculaAluno});
-
-    if (alunoExiste) {
-        const erro = new Error("Matrícula já usada");
-        erro.status = 409;
-        throw erro;
-    }
-
-    try {
-        
-        const alunoCadastrado = await AlunoModel.create(alunoObject);
-        const alunoSemSenha = alunoCadastrado.toObject()
-        delete alunoSemSenha.senha;
-
-        return alunoSemSenha;
-
-    } catch (error) {
-
-        // Erro de duplicidade (cadastro não tem idempotência)
-        if (error.code === 11000) {
-            const erro = new Error("Já existe um aluno com esse cadastro");
-            erro.status = 409;
-            throw erro;
+// Equivalente ao populate(): busca nome, telefone e email dos cuidadores numa só chamada
+const montarRespostas = async (snapshots) => {
+    const ids = [...new Set(snapshots.map((s) => s.data().cuidador))];
+    const mapa = new Map();
+    if (ids.length > 0) {
+        const docs = await firestore().getAll(...ids.map((id) => cuidadores().doc(id)));
+        for (const d of docs) {
+            if (d.exists) {
+                const { nome, telefone, email } = d.data();
+                mapa.set(d.id, { _id: d.id, nome, telefone, email });
+            }
         }
-
-        throw error;
     }
+    return snapshots.map((s) => alunoParaResposta(s, mapa.get(s.data().cuidador)));
+};
 
-}
+// CREATE
+export const criarAlunoService = async (escolaId, dados) => {
+    const ref = alunos().doc();
 
-export const loginAlunoService = async (matricula, senha) => {
+    await firestore().runTransaction(async (t) => {
+        await exigirCuidadorDaEscola(t, escolaId, dados.cuidador);
+        t.create(ref, { ...alunoParaDocumento(dados), escola: String(escolaId), ativo: true });
+    });
 
-    const alunoCadastrado = await AlunoModel.findOne({matricula}).select("+senha");
+    return buscarAlunoService({ tipo: "escola", escolaId }, ref.id);
+};
 
-    if (!alunoCadastrado) {
-        const erro = new Error("Matrícula ou senha inválidos");
-        erro.status = 401;
-        throw erro;
-    }
+// READ (lista). Ordenação por nome feita em memória: evita exigir índice composto no Firestore.
+export const listarAlunosService = async (auth) => {
+    const { docs } = await consultaDeAcesso(auth).get();
+    const lista = await montarRespostas(docs);
+    return lista.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+};
 
-    const senhaValida = await bcrypt.compare(senha, alunoCadastrado.senha);
+// READ (um)
+export const buscarAlunoService = async (auth, id) => {
+    const snapshot = await alunos().doc(id).get();
+    const dados = snapshot.exists ? snapshot.data() : null;
 
-    if (!senhaValida) {
-        const erro = new Error("Matrícula ou senha inválidos");
-        erro.status = 401;
-        throw erro;
-    }
+    // 404 tanto para "não existe" quanto para "é de outra escola/cuidador": não revela a existência
+    const permitido = dados &&
+        dados.escola === String(auth.escolaId) &&
+        (auth.tipo === "escola" || dados.cuidador === String(auth.id));
+    if (!permitido) throw new ErroHttp(404, "Aluno não encontrado");
 
-    return alunoCadastrado;
-}
+    return (await montarRespostas([snapshot]))[0];
+};
 
+// UPDATE (parcial), em transação para o 404 e a checagem de escola serem atômicos
+export const atualizarAlunoService = async (escolaId, id, alteracoes) => {
+    const ref = alunos().doc(id);
+
+    await firestore().runTransaction(async (t) => {
+        const snapshot = await t.get(ref);
+        if (!snapshot.exists || snapshot.data().escola !== String(escolaId)) {
+            throw new ErroHttp(404, "Aluno não encontrado");
+        }
+        if (alteracoes.cuidador) await exigirCuidadorDaEscola(t, escolaId, alteracoes.cuidador);
+        t.update(ref, alunoParaDocumento(alteracoes));
+    });
+
+    return buscarAlunoService({ tipo: "escola", escolaId }, id);
+};
+
+// DELETE
+export const removerAlunoService = async (escolaId, id) => {
+    const ref = alunos().doc(id);
+
+    await firestore().runTransaction(async (t) => {
+        const snapshot = await t.get(ref);
+        if (!snapshot.exists || snapshot.data().escola !== String(escolaId)) {
+            throw new ErroHttp(404, "Aluno não encontrado");
+        }
+        t.delete(ref);
+    });
+};

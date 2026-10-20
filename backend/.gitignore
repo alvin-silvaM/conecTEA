@@ -1,3 +1,15 @@
-/node_modules/
+node_modules/
+
+# Variáveis de ambiente e credenciais (nunca versionar)
 .env
-firebase-service-account.json
+.env.*
+!.env.example
+secret/*
+firebase-admin*.json
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+
+# Logs do Firebase CLI / emulador
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

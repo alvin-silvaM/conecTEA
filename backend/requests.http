@@ -1,0 +1,95 @@
+### Variáveis (VS Code REST Client). Preencha o token com o retorno do login da escola.
+@base = http://localhost:3000
+@token = COLE_O_TOKEN_AQUI
+@cuidador = COLE_O_ID_DE_UM_CUIDADOR_DA_ESCOLA
+@aluno = COLE_O_ID_DO_ALUNO_CRIADO
+
+### 0. Login da escola (obtém o token)
+POST {{base}}/escolas
+Content-Type: application/json
+
+{ "cnpj": "12345678000199", "senha": "senha1234" }
+
+### 0b. Criar cuidador (precisa existir para vincular o aluno)
+POST {{base}}/cuidadores
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "Maria Cuidadora", "telefone": "85988880001", "email": "maria@exemplo.com", "senha": "senha1234" }
+
+### 1. Criar aluno válido -> 201
+POST {{base}}/alunos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "Aluno Teste", "dataNascimento": "2016-05-10", "cuidador": "{{cuidador}}" }
+
+### 2. Criar aluno inválido (nome vazio, data futura, campo proibido) -> 400
+POST {{base}}/alunos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "", "dataNascimento": "2999-01-01", "cuidador": "{{cuidador}}", "escola": "outra" }
+
+### 3. Listar -> 200
+GET {{base}}/alunos
+Authorization: Bearer {{token}}
+
+### 4. Buscar um -> 200
+GET {{base}}/alunos/{{aluno}}
+Authorization: Bearer {{token}}
+
+### 5. Atualizar -> 200
+PATCH {{base}}/alunos/{{aluno}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "Aluno Teste Editado" }
+
+### 6. Atualizar com dados inválidos -> 400
+PATCH {{base}}/alunos/{{aluno}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "ativo": "sim", "escola": "x" }
+
+### 7. Atualizar inexistente -> 404
+PATCH {{base}}/alunos/idInexistente0000000
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "nome": "X" }
+
+### 8. Excluir -> 200
+DELETE {{base}}/alunos/{{aluno}}
+Authorization: Bearer {{token}}
+
+### 9. Excluir inexistente -> 404
+DELETE {{base}}/alunos/idInexistente0000000
+Authorization: Bearer {{token}}
+
+### 10. Consultar a própria escola -> 200
+GET {{base}}/escolas/eu
+Authorization: Bearer {{token}}
+
+### 11. Editar a própria escola (parcial) -> 200
+PATCH {{base}}/escolas/eu
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "telefone2": "(88) 3412-0000" }
+
+### 12. Consultar um cuidador -> 200
+GET {{base}}/cuidadores/{{cuidador}}
+Authorization: Bearer {{token}}
+
+### 13. Editar um cuidador (parcial) -> 200
+PATCH {{base}}/cuidadores/{{cuidador}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "telefone": "(88) 98888-9999" }
+
+### 14. Excluir a escola (409 se houver cuidadores ou alunos)
+DELETE {{base}}/escolas/eu
+Authorization: Bearer {{token}}
