@@ -1,6 +1,7 @@
 {
   "name": "conectea-frontend",
   "version": "1.0.0",
+  "description": "Front-end do conecTEA (HTML, CSS e JavaScript puros, sem dependências)",
   "private": true,
   "type": "module",
   "scripts": {

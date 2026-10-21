@@ -13,6 +13,17 @@ export const criarCuidadorSchema = z.object({
     senha: senhaSchema
 });
 
+// Edição parcial pela escola: a escola do cuidador nunca muda.
+export const atualizarCuidadorSchema = z
+    .object({
+        nome: textoSchema("Nome inválido", 120).optional(),
+        telefone: telefoneSchema.optional(),
+        email: emailSchema.optional(),
+        senha: senhaSchema.optional(),
+        ativo: z.boolean({ error: "Campo ativo inválido" }).optional()
+    })
+    .refine((dados) => Object.keys(dados).length > 0, "Nenhum campo para atualizar");
+
 export const loginCuidadorSchema = z.object({
     email: emailSchema,
     senha: z.string().min(1)
