@@ -31,6 +31,7 @@ export const listarAlunos = async (req, res) => {
 };
 
 export const buscarAluno = async (req, res) => {
+    
     try {
         const aluno = await buscarAlunoService(req.auth, req.validado.params.id);
         return res.status(200).json({ aluno });
