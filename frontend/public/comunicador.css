@@ -1,0 +1,54 @@
+/* Tela da criança — mesma família do sistema (fio, marinho, cores dos alunos), mas própria:
+   fundo creme, tipografia arredondada (Nunito), botões enormes e táteis, símbolo + texto em cada mensagem.
+   A cor identifica a categoria; nome, ícone e texto sempre acompanham a cor. */
+
+.comunicador {
+  --c-bg: #ffe08a; --c-borda: #a67100; --c-ink: #4a3300;
+  min-height: 100dvh; background: #fff9ec; color: #16213a; font-family: "Nunito", var(--fonte);
+  padding: max(1rem, env(safe-area-inset-top)) clamp(.75rem, 3vw, 2rem) max(2rem, env(safe-area-inset-bottom));
+}
+.com-miolo { max-width: 66rem; margin: 0 auto; display: grid; gap: 1.25rem; }
+[data-cat="alimentacao"] { --c-bg: #ffe08a; --c-borda: #a67100; --c-ink: #4a3300; }
+[data-cat="necessidades"] { --c-bg: #bfe0fa; --c-borda: #3f8fd6; --c-ink: #0f3a63; }
+[data-cat="estudos"] { --c-bg: #cde6d1; --c-borda: #3e8a4b; --c-ink: #1d4a27; }
+[data-cat="extras"] { --c-bg: #f6d0e0; --c-borda: #c25a89; --c-ink: #5a1737; }
+
+.com-topo { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.com-aluno { flex: 1; display: flex; align-items: center; justify-content: center; gap: .6rem; font-size: 1.15rem; font-weight: 700; color: #3c4763; overflow-wrap: anywhere; }
+.com-botao { display: inline-flex; align-items: center; gap: .45rem; min-height: 52px; padding: .4rem 1.1rem; border: 2px solid #0e1f44; border-radius: 99px; background: #fff; color: #0e1f44; font: 800 1rem "Nunito", var(--fonte); cursor: pointer; }
+.com-botao:active { transform: scale(.96); }
+.com-botao[aria-pressed="false"] { border-style: dashed; }
+
+/* Balão de fala: o que foi escolhido, em letras grandes, com o fio na base */
+.balao { position: relative; display: flex; align-items: center; justify-content: center; gap: 1.25rem; min-height: 9.5rem; padding: 1.25rem 1.75rem 1.75rem; background: #fff; border: 4px solid var(--c-borda); border-radius: 32px; overflow: hidden; }
+.balao::after { content: ""; position: absolute; inset: auto 0 0 0; height: .7rem; background: var(--fio); }
+.balao-icone { display: none; flex: none; place-items: center; width: 5rem; height: 5rem; border-radius: 50%; background: var(--c-bg); color: var(--c-ink); }
+.balao-icone .icone { width: 3rem; height: 3rem; }
+.balao[data-tem] .balao-icone { display: grid; }
+#fala { font-size: clamp(2rem, 7vw, 3.75rem); font-weight: 900; line-height: 1.1; text-align: center; text-wrap: balance; }
+#fala .vazia { font-size: clamp(1.25rem, 3vw, 1.75rem); font-weight: 600; color: #566079; }
+
+.com-categorias { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); }
+.com-categoria { display: flex; align-items: center; justify-content: center; gap: .7rem; min-height: 5.25rem; padding: .5rem 1.25rem; border: 4px solid var(--c-borda); border-radius: 28px; background: var(--c-bg); color: var(--c-ink); font: 800 clamp(1.2rem, 3vw, 1.6rem) "Nunito", var(--fonte); cursor: pointer; touch-action: manipulation; }
+.com-categoria .icone { width: 2rem; height: 2rem; }
+.com-categoria[aria-pressed="true"] { background: var(--c-ink); border-color: var(--c-ink); color: #fff; }
+
+.com-mensagens ul { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); }
+.com-mensagens li { display: flex; }
+.com-msg {
+  position: relative; width: 100%; height: 100%; min-height: 11.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 1.25rem 1rem;
+  border: 4px solid var(--c-borda); border-radius: 32px; background: var(--c-bg); color: var(--c-ink); box-shadow: 0 6px 0 var(--c-borda);
+  font: 800 clamp(1.5rem, 4vw, 2.1rem)/1.15 "Nunito", var(--fonte); text-wrap: balance; cursor: pointer;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none; transition: transform .08s, box-shadow .08s;
+}
+.com-msg .icone { width: 4rem; height: 4rem; }
+.com-msg img { width: 5rem; height: 5rem; object-fit: contain; }
+.com-msg:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--c-borda); }
+.com-msg[aria-pressed="true"] { background: var(--c-ink); border-color: var(--c-ink); color: #fff; box-shadow: 0 6px 0 #0e1f44; }
+.com-msg[aria-pressed="true"]::after { content: "✓"; position: absolute; top: .7rem; right: .8rem; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: #fff; color: var(--c-ink); font-size: 1.2rem; }
+.comunicador :focus-visible { outline: 4px solid #0e1f44; outline-offset: 4px; border-radius: 28px; }
+
+.comunicador-erro { display: grid; gap: 1rem; justify-items: start; max-width: 34rem; margin: 4rem auto; padding: 1rem; }
+.carregando-com { display: grid; place-items: center; }
+@media (max-width: 30rem) { .com-aluno span:last-child { display: none; } .com-botao { padding-inline: .9rem; } .com-msg { min-height: 9.5rem; } .com-msg .icone { width: 3.25rem; height: 3.25rem; } }
+@media (prefers-reduced-motion: reduce) { .com-msg, .com-botao { transition: none; } .com-msg:active, .com-botao:active { transform: none; } }

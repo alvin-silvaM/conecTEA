@@ -15,7 +15,16 @@ const TIPOS = {
     ".html": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
-    ".svg": "image/svg+xml"
+    ".svg": "image/svg+xml",
+    ".woff2": "font/woff2"
+};
+
+// Cabeçalhos de segurança dos arquivos estáticos (o app trata dados de crianças: LGPD)
+const CABECALHOS = {
+    "Content-Security-Policy": "default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-cache"
 };
 
 const ehRotaApi = (caminho) => ROTAS_API.some((r) => caminho === r || caminho.startsWith(`${r}/`));
@@ -44,7 +53,7 @@ const servirArquivo = async (caminho, res) => {
     }
     try {
         const conteudo = await readFile(arquivo);
-        res.writeHead(200, { "Content-Type": TIPOS[path.extname(arquivo)] || "application/octet-stream" });
+        res.writeHead(200, { ...CABECALHOS, "Content-Type": TIPOS[path.extname(arquivo)] || "application/octet-stream" });
         res.end(conteudo);
     } catch {
         res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Página não encontrada");
