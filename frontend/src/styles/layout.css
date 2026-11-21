@@ -1,0 +1,397 @@
+/* ---------- Estrutura logada ---------- */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app__main {
+  padding: 56px 44px 64px;
+  min-width: 0;
+  max-width: 1200px;
+}
+
+.app__main:focus {
+  outline: none;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 0 24px;
+  background: var(--color-bg);
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar__logo {
+  padding: 0 32px;
+  margin-bottom: 40px;
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: 6px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 20px 0 29px;
+  color: var(--color-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+  border-left: 3px solid transparent;
+}
+
+.nav-link:hover {
+  background: #e8e8e8;
+}
+
+.nav-link.active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+.nav-link:focus-visible {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px var(--color-primary);
+}
+
+.sidebar__user {
+  margin-top: auto;
+  padding: 0 22px;
+  display: grid;
+  gap: 4px;
+}
+
+.sidebar__name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.sidebar__role {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-bottom: 12px;
+}
+
+/* ---------- Cabeçalho de página ---------- */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.page-header__desc {
+  margin-top: 4px;
+  color: var(--color-muted);
+}
+
+/* ---------- Início ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin-bottom: 28px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  min-height: 128px;
+}
+
+.stat__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.stat__label {
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+.stat__value {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.list-card {
+  padding: 28px 24px 12px;
+}
+
+.simple-list {
+  margin-top: 16px;
+}
+
+.simple-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.simple-list li:last-child {
+  border-bottom: 0;
+}
+
+.simple-list__title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.simple-list__sub {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+/* ---------- Formulários ---------- */
+.form-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-bottom: 24px;
+  align-items: start;
+}
+
+.form-card {
+  padding: 28px 30px 16px;
+}
+
+.form-card h2 {
+  margin-bottom: 20px;
+}
+
+.form-card .card__desc {
+  margin: -12px 0 16px;
+}
+
+.form-card--single {
+  max-width: 560px;
+  margin-bottom: 24px;
+}
+
+.check-list {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 12px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+}
+
+.form-grid__full {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Minha escola ---------- */
+.school-card {
+  padding: 28px 24px 28px;
+}
+
+.school-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 32px;
+}
+
+.data-grid dt {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.data-grid dd {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Login e cadastro ---------- */
+.auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.auth__panel {
+  display: flex;
+  align-items: center;
+  padding: 48px 40px;
+}
+
+.auth__content {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.auth__content--wide {
+  max-width: 560px;
+}
+
+.auth__content h1 {
+  font-size: 26px;
+  margin: 56px 0 12px;
+}
+
+.auth__desc {
+  color: var(--color-muted);
+  margin-bottom: 28px;
+  max-width: 32ch;
+}
+
+.auth__content--wide .auth__desc {
+  max-width: none;
+}
+
+.auth__content .btn {
+  margin-top: 4px;
+}
+
+.auth__alt {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.auth__hero {
+  background-size: cover;
+  background-position: center;
+  min-height: 100%;
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1100px) {
+  .form-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    padding: 16px 0 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .sidebar__logo {
+    margin-bottom: 12px;
+    padding: 0 20px;
+  }
+
+  .sidebar__nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    max-width: 100%;
+  }
+
+  .nav-link {
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    padding: 0 16px;
+  }
+
+  .nav-link.active {
+    border-bottom-color: var(--color-primary);
+  }
+
+  .sidebar__user {
+    margin-top: 0;
+    padding: 12px 20px;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: 12px;
+  }
+
+  .sidebar__role {
+    margin: 0;
+    grid-column: 1;
+  }
+
+  .sidebar__user .btn {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: auto;
+  }
+
+  .app__main {
+    padding: 28px 20px 48px;
+  }
+
+  .page-header {
+    flex-direction: column;
+  }
+
+  .data-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .auth__hero {
+    display: none;
+  }
+
+  .auth__panel {
+    padding: 32px 20px;
+  }
+
+  .table-head {
+    display: none;
+  }
+
+  .table-row {
+    grid-template-columns: 1fr !important;
+    gap: 6px;
+    padding: 16px 20px;
+  }
+}
