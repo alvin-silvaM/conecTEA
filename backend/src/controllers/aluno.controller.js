@@ -3,9 +3,12 @@ import {
     listarAlunosService,
     buscarAlunoService,
     atualizarAlunoService,
-    removerAlunoService
+    removerAlunoService,
+    loginAlunoService,
+    meusDadosAlunoService
 } from "../services/aluno.service.js";
 import { responderErro } from "../utils/erros.js";
+import { assinarToken } from "../utils/seguranca.js";
 
 // A validação (Zod) acontece antes, no middleware validar() das rotas:
 // aqui req.validado já contém apenas dados válidos e permitidos.
@@ -54,6 +57,28 @@ export const removerAluno = async (req, res) => {
     try {
         await removerAlunoService(req.auth.escolaId, req.validado.params.id);
         return res.status(200).json({ message: "Aluno excluído" });
+    } catch (erro) {
+        return responderErro(res, erro);
+    }
+};
+
+// Login do aluno (email + senha)
+export const loginAluno = async (req, res) => {
+    try {
+        const { email, senha } = req.validado.body;
+        const aluno = await loginAlunoService(email, senha);
+        const token = assinarToken("aluno", aluno._id);
+        return res.status(200).json({ message: "Login realizado com sucesso", token });
+    } catch (erro) {
+        return responderErro(res, erro, "Falha no login");
+    }
+};
+
+// Aluno logado vê os próprios dados
+export const meusDadosAluno = async (req, res) => {
+    try {
+        const aluno = await meusDadosAlunoService(req.auth.id);
+        return res.status(200).json({ aluno });
     } catch (erro) {
         return responderErro(res, erro);
     }

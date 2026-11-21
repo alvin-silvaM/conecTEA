@@ -1,7 +1,10 @@
-import { firestore } from "../database/firestore.js";
+import bcrypt from "bcrypt";
+import { firestore, refUnico } from "../database/firestore.js";
 import { COLECAO_ALUNOS, alunoParaDocumento, alunoParaResposta } from "../models/aluno.model.js";
 import { COLECAO_CUIDADORES } from "../models/cuidador.model.js";
+import { COLECAO_ESCOLAS } from "../models/escola.model.js";
 import { ErroHttp } from "../utils/erros.js";
+import { HASH_FICTICIO } from "../utils/seguranca.js";
 
 // Armazenamento: Cloud Firestore. Relações são guardadas como ids (strings) e resolvidas aqui.
 const alunos = () => firestore().collection(COLECAO_ALUNOS);
@@ -40,13 +43,23 @@ const montarRespostas = async (snapshots) => {
     return snapshots.map((s) => alunoParaResposta(s, mapa.get(s.data().cuidador)));
 };
 
-// CREATE
+// CREATE. O email do aluno é único (trava em "_unicos", criada na mesma transação).
 export const criarAlunoService = async (escolaId, dados) => {
+    const { senha, ...resto } = dados;
+    const documento = {
+        ...alunoParaDocumento(resto),
+        senha: await bcrypt.hash(senha, 10),
+        escola: String(escolaId),
+        ativo: true
+    };
     const ref = alunos().doc();
+    const trava = refUnico("aluno_email", documento.email);
 
     await firestore().runTransaction(async (t) => {
         await exigirCuidadorDaEscola(t, escolaId, dados.cuidador);
-        t.create(ref, { ...alunoParaDocumento(dados), escola: String(escolaId), ativo: true });
+        if ((await t.get(trava)).exists) throw new ErroHttp(409, "Endereço de email já utilizado");
+        t.create(ref, documento);
+        t.create(trava, { aluno: ref.id });
     });
 
     return buscarAlunoService({ tipo: "escola", escolaId }, ref.id);
@@ -73,8 +86,12 @@ export const buscarAlunoService = async (auth, id) => {
     return (await montarRespostas([snapshot]))[0];
 };
 
-// UPDATE (parcial), em transação para o 404 e a checagem de escola serem atômicos
+// UPDATE (parcial), em transação para o 404 e a checagem de escola serem atômicos.
+// Trocar o email troca também a trava de unicidade, na mesma transação.
 export const atualizarAlunoService = async (escolaId, id, alteracoes) => {
+    const { senha, ...resto } = alteracoes;
+    const mudancas = alunoParaDocumento(resto);
+    if (senha !== undefined) mudancas.senha = await bcrypt.hash(senha, 10);
     const ref = alunos().doc(id);
 
     await firestore().runTransaction(async (t) => {
@@ -83,7 +100,17 @@ export const atualizarAlunoService = async (escolaId, id, alteracoes) => {
             throw new ErroHttp(404, "Aluno não encontrado");
         }
         if (alteracoes.cuidador) await exigirCuidadorDaEscola(t, escolaId, alteracoes.cuidador);
-        t.update(ref, alunoParaDocumento(alteracoes));
+
+        const emailAntigo = snapshot.data().email;
+        const trocouEmail = resto.email !== undefined && resto.email !== emailAntigo;
+        const travaNova = trocouEmail ? refUnico("aluno_email", resto.email) : null;
+        if (travaNova && (await t.get(travaNova)).exists) throw new ErroHttp(409, "Endereço de email já utilizado");
+
+        t.update(ref, mudancas);
+        if (trocouEmail) {
+            if (emailAntigo) t.delete(refUnico("aluno_email", emailAntigo));
+            t.create(travaNova, { aluno: id });
+        }
     });
 
     return buscarAlunoService({ tipo: "escola", escolaId }, id);
@@ -99,5 +126,33 @@ export const removerAlunoService = async (escolaId, id) => {
             throw new ErroHttp(404, "Aluno não encontrado");
         }
         t.delete(ref);
+        if (snapshot.data().email) t.delete(refUnico("aluno_email", snapshot.data().email)); // libera o email
     });
+};
+
+// Login do aluno (email + senha). Conta inativa ou de escola inativa não entra.
+export const loginAlunoService = async (email, senha) => {
+    const { docs } = await alunos().where("email", "==", email).limit(1).get();
+    const doc = docs[0];
+    const aluno = doc?.data();
+
+    // Sempre executa o bcrypt, mesmo sem aluno, para o tempo não revelar se o email existe
+    const validado = await bcrypt.compare(senha, aluno?.senha ? aluno.senha : HASH_FICTICIO);
+    if (!aluno || !validado) throw new ErroHttp(401, "Email ou senha inválidos");
+
+    const escola = await firestore().collection(COLECAO_ESCOLAS).doc(aluno.escola).get();
+    if (!aluno.ativo || !escola.exists || !escola.data().ativo) throw new ErroHttp(403, "Conta inativa");
+
+    return { _id: doc.id };
+};
+
+// Dados do próprio aluno logado: só o necessário para a tela dele (sem cuidador, escola ou senha)
+export const meusDadosAlunoService = async (id) => {
+    const snapshot = await alunos().doc(id).get();
+    if (!snapshot.exists) throw new ErroHttp(404, "Aluno não encontrado");
+    const { nome, email, ativo, dataNascimento } = snapshot.data();
+    return {
+        _id: snapshot.id, nome, email, ativo,
+        ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {})
+    };
 };

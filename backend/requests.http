@@ -22,7 +22,13 @@ POST {{base}}/alunos
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
-{ "nome": "Aluno Teste", "dataNascimento": "2016-05-10", "cuidador": "{{cuidador}}" }
+{ "nome": "Aluno Teste", "email": "aluno@exemplo.com", "senha": "senha1234", "dataNascimento": "2016-05-10", "cuidador": "{{cuidador}}" }
+
+### 1b. Login do aluno -> 200 (token) | depois: GET {{base}}/alunos/eu com esse token
+POST {{base}}/alunos/login
+Content-Type: application/json
+
+{ "email": "aluno@exemplo.com", "senha": "senha1234" }
 
 ### 2. Criar aluno inválido (nome vazio, data futura, campo proibido) -> 400
 POST {{base}}/alunos
