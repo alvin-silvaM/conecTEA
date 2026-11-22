@@ -508,3 +508,125 @@
   display: block;
   width: auto;
 }
+
+/* ---------- Ajustes responsivos de componentes ---------- */
+.btn,
+.pagination__btn {
+  max-width: 100%;
+}
+
+.table-wrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-head,
+.table-row {
+  min-width: 0;
+}
+
+.table-row > *,
+.table-head > * {
+  min-width: 0;
+}
+
+.filters {
+  min-width: 0;
+}
+
+.filters .field,
+.filters__grow {
+  min-width: 0;
+}
+
+.pagination__controls {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-row {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .cell-person {
+    min-width: 0;
+  }
+
+  .filters {
+    align-items: stretch;
+  }
+
+  .filters__grow {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .filters .field {
+    flex: 1 1 220px;
+  }
+
+  .filters .link-btn {
+    align-self: flex-start;
+  }
+
+  .pagination {
+    align-items: flex-start;
+  }
+
+  .pagination__controls {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .btn {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .alert {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .state {
+    padding: 36px 16px;
+  }
+
+  .table-row {
+    padding: 14px 12px;
+  }
+
+  .cell-person {
+    gap: 10px;
+  }
+
+  .pagination {
+    gap: 10px;
+  }
+
+  .pagination__controls {
+    gap: 6px;
+  }
+
+  .pagination__btn {
+    min-height: 40px;
+    padding: 0 10px;
+  }
+
+  .pagination__num {
+    min-width: 40px;
+    padding: 0;
+  }
+
+  .breadcrumb {
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+}
