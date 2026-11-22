@@ -1,14 +1,19 @@
 import axios from 'axios';
 
-// Camada de acesso à API. Nenhum componente chama o Axios diretamente, tudo passa por aqui.
+// Camada de acesso à API. Nenhum componente chama o Axios diretamente: tudo passa por aqui.
+// As rotas usam o prefixo /api: o Vite (dev) e o Nginx (produção) removem esse prefixo
+// antes de encaminhar ao backend. O prefixo evita conflito com as rotas do React
+// (/alunos e /cuidadores existem nos dois lados).
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 
-// O token fica em sessionStorage pra cada aba ter a própria sessão.
+// O token fica em sessionStorage: cada aba tem a própria sessão.
 const TOKEN_KEY = 'conectea_token';
 export const getToken = () => sessionStorage.getItem(TOKEN_KEY);
 export const setToken = (token) => sessionStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => sessionStorage.removeItem(TOKEN_KEY);
 
+// Erro padrão da API: { message, erros?: [{ campo, mensagem }] }
+// Os componentes só conhecem esta classe, nunca o erro do Axios.
 export class ApiError extends Error {
   constructor(status, message, erros = []) {
     super(message);
@@ -17,11 +22,15 @@ export class ApiError extends Error {
   }
 }
 
+// Instância configurada: baseURL e timeout valem para todas as requisições.
+// O Axios converte o corpo para JSON, define o Content-Type e converte a resposta de JSON sozinho.
 const http = axios.create({
   baseURL: BASE,
   timeout: 15000,
 });
 
+// Interceptor de requisição: anexa o token antes de cada envio.
+// Rotas públicas (login e cadastro) passam `skipAuth: true` para não enviar o token.
 http.interceptors.request.use((config) => {
   const token = getToken();
   if (token && !config.skipAuth) {
@@ -30,6 +39,8 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor de resposta: o Axios rejeita qualquer status fora de 2xx.
+// Aqui convertemos o erro do Axios no ApiError, mantendo o formato que as telas já usam.
 http.interceptors.response.use(
   (resposta) => resposta,
   (erro) => {
@@ -46,22 +57,28 @@ http.interceptors.response.use(
   },
 );
 
+// Mesma assinatura da versão com fetch, então as funções exportadas abaixo não mudam.
 async function request(method, url, { body, auth = true } = {}) {
   const resposta = await http.request({ method, url, data: body, skipAuth: !auth });
   return resposta.data ?? {};
 }
 
-// Funções da escola
+// Escola
 export const cadastrarEscola = (dados) => request('POST', '/escolas/cadastro', { body: dados, auth: false });
 export const loginEscola = (dados) => request('POST', '/escolas', { body: dados, auth: false });
 export const buscarMinhaEscola = () => request('GET', '/escolas/eu').then((d) => d.escola);
 export const atualizarMinhaEscola = (dados) => request('PATCH', '/escolas/eu', { body: dados }).then((d) => d.escola);
 
-// Funções dos cuidadores
+// Cuidadores
 export const listarCuidadores = () => request('GET', '/cuidadores').then((d) => d.cuidadores);
+export const buscarCuidador = (id) => request('GET', `/cuidadores/${id}`).then((d) => d.cuidador);
 export const criarCuidador = (dados) => request('POST', '/cuidadores', { body: dados }).then((d) => d.cuidador);
+export const atualizarCuidador = (id, dados) => request('PATCH', `/cuidadores/${id}`, { body: dados }).then((d) => d.cuidador);
+export const excluirCuidador = (id) => request('DELETE', `/cuidadores/${id}`);
 
-// Funções dos alunos
+// Alunos
 export const listarAlunos = () => request('GET', '/alunos').then((d) => d.alunos);
+export const buscarAluno = (id) => request('GET', `/alunos/${id}`).then((d) => d.aluno);
 export const criarAluno = (dados) => request('POST', '/alunos', { body: dados }).then((d) => d.aluno);
 export const atualizarAluno = (id, dados) => request('PATCH', `/alunos/${id}`, { body: dados }).then((d) => d.aluno);
+export const excluirAluno = (id) => request('DELETE', `/alunos/${id}`);
