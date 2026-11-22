@@ -112,3 +112,21 @@ button:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Ajustes de dimensionamento responsivo ---------- */
+html,
+body {
+  width: 100%;
+  min-width: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}

@@ -1,0 +1,212 @@
+/* Edição, status e exclusão: botões pequenos e de perigo, ações de linha, janela de confirmação */
+
+.btn--sm {
+  min-height: 36px;
+  padding: 0 8px;
+  font-size: 13px;
+  border-width: 1.5px;
+}
+
+/* Perigo: contorno vermelho (ação secundária) e preenchido (confirmação final) */
+.btn--danger {
+  background: var(--color-surface);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--color-error-soft);
+}
+
+.btn--danger-solid {
+  background: var(--color-error);
+  color: #fff;
+  border-color: var(--color-error);
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  background: #991b1b;
+  border-color: #991b1b;
+}
+
+/* Ações de uma linha de tabela */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.row-actions> :nth-child(2) {
+  min-width: 88px;
+}
+
+/* "Ativar" e "Desativar" ocupam a mesma largura */
+
+/* Escolha Ativo / Inativo */
+.status-field {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
+}
+
+.status-field legend {
+  padding: 0;
+}
+
+.status-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.status-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.status-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.status-option:has(input:checked) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.status-option:has(input:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+/* Bloco "Excluir" no fim da tela de edição */
+.danger-zone {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 22px 24px;
+  border-color: var(--color-error);
+}
+
+.danger-zone h2 {
+  font-size: 18px;
+}
+
+.form-actions__hint {
+  align-self: center;
+  margin: 0;
+}
+
+/* Janela de confirmação (<dialog> nativo) */
+.dialog {
+  color: var(--color-text);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.dialog::backdrop {
+  background: rgba(25, 25, 25, 0.55);
+}
+
+.dialog__body {
+  display: grid;
+  gap: 12px;
+  padding: 28px;
+}
+
+.dialog__body h2 {
+  color: var(--color-text);
+}
+
+.dialog__body p {
+  color: var(--color-muted);
+  font-size: 15px;
+}
+
+.dialog__body .field__error {
+  color: var(--color-error);
+  margin-top: 0;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* ---------- Ajustes responsivos de edição ---------- */
+.dialog {
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .row-actions {
+    width: 100%;
+  }
+
+  .row-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .status-options {
+    gap: 8px;
+  }
+
+  .status-option {
+    flex: 1 1 130px;
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  .danger-zone {
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .danger-zone > * {
+    min-width: 0;
+  }
+
+  .danger-zone .btn {
+    width: 100%;
+  }
+
+  .dialog__body {
+    padding: 20px 16px;
+  }
+
+  .dialog__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .dialog__actions .btn {
+    width: 100%;
+  }
+}
