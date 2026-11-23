@@ -82,12 +82,3 @@ export const buscarAluno = (id) => request('GET', `/alunos/${id}`).then((d) => d
 export const criarAluno = (dados) => request('POST', '/alunos', { body: dados }).then((d) => d.aluno);
 export const atualizarAluno = (id, dados) => request('PATCH', `/alunos/${id}`, { body: dados }).then((d) => d.aluno);
 export const excluirAluno = (id) => request('DELETE', `/alunos/${id}`);
-
-// Cuidador (perfil logado)
-export const loginCuidador = (dados) => request('POST', '/cuidadores/login', { body: dados, auth: false });
-export const buscarMeuCuidador = () => request('GET', '/cuidadores/eu').then((d) => d.cuidador);
-export const atualizarMeusDados = (dados) => request('PATCH', '/cuidadores/eu', { body: dados }).then((d) => d.cuidador);
-export const buscarInicioCuidador = () => request('GET', '/cuidadores/eu/inicio'); // { indicadores, alunosFixados }
-export const buscarPainelAlunos = () => request('GET', '/alunos/painel'); // { vinculados, demais }
-export const fixarAluno = (id) => request('PUT', `/alunos/${id}/fixar`);
-export const desafixarAluno = (id) => request('DELETE', `/alunos/${id}/fixar`);

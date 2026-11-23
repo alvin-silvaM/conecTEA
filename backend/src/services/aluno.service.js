@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
-import { FieldValue } from "firebase-admin/firestore";
 import { firestore, refUnico } from "../database/firestore.js";
-import { COLECAO_ALUNOS, alunoParaDocumento, alunoParaPainel, alunoParaResposta } from "../models/aluno.model.js";
+import { COLECAO_ALUNOS, alunoParaDocumento, alunoParaResposta } from "../models/aluno.model.js";
 import { COLECAO_CUIDADORES } from "../models/cuidador.model.js";
 import { COLECAO_ESCOLAS } from "../models/escola.model.js";
 import { ErroHttp } from "../utils/erros.js";
@@ -156,53 +155,4 @@ export const meusDadosAlunoService = async (id) => {
         _id: snapshot.id, nome, email, ativo,
         ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {})
     };
-};
-
-// Tela Aluno do cuidador: separa os alunos dele ("vinculados", com a marca de fixado) dos demais da
-// escola ("demais", só consulta). O escolaId e o id do cuidador vêm do token.
-// Os "demais" saem no formato enxuto (sem data de nascimento nem e-mail).
-export const painelAlunosService = async (auth) => {
-    const [{ docs }, eu] = await Promise.all([
-        alunos().where("escola", "==", String(auth.escolaId)).get(),
-        cuidadores().doc(String(auth.id)).get()
-    ]);
-    const fixados = new Set(eu.exists ? (eu.data().alunosFixados ?? []) : []);
-
-    const ids = [...new Set(docs.map((d) => d.data().cuidador))];
-    const nomes = new Map();
-    if (ids.length > 0) {
-        for (const c of await firestore().getAll(...ids.map((id) => cuidadores().doc(id)))) {
-            if (c.exists) nomes.set(c.id, c.data().nome);
-        }
-    }
-
-    const porNome = (a, b) => a.nome.localeCompare(b.nome, "pt-BR");
-    const vinculados = [];
-    const demais = [];
-    for (const d of docs) {
-        const dados = d.data();
-        const item = alunoParaPainel(d.id, dados, nomes.get(dados.cuidador));
-        if (dados.cuidador === String(auth.id)) vinculados.push({ ...item, fixado: fixados.has(d.id) });
-        else demais.push(item);
-    }
-    return { vinculados: vinculados.sort(porNome), demais: demais.sort(porNome) };
-};
-
-// Fixa ou desafixa um aluno na página Início. Só o cuidador responsável pode: para qualquer outro
-// caso (aluno inexistente, de outra escola ou de outro cuidador) a resposta é 404.
-// arrayUnion/arrayRemove tornam a operação idempotente (fixar duas vezes não duplica).
-export const alterarFixacaoService = async (auth, alunoId, fixar) => {
-    const refAluno = alunos().doc(alunoId);
-    const refCuidador = cuidadores().doc(String(auth.id));
-
-    await firestore().runTransaction(async (t) => {
-        const aluno = await t.get(refAluno);
-        const dados = aluno.exists ? aluno.data() : null;
-        if (!dados || dados.escola !== String(auth.escolaId) || dados.cuidador !== String(auth.id)) {
-            throw new ErroHttp(404, "Aluno não encontrado");
-        }
-        t.update(refCuidador, { alunosFixados: fixar ? FieldValue.arrayUnion(alunoId) : FieldValue.arrayRemove(alunoId) });
-    });
-
-    return { fixado: fixar };
 };

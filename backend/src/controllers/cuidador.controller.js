@@ -5,9 +5,7 @@ import {
     buscarCuidadorDaEscolaService,
     atualizarCuidadorService,
     removerCuidadorService,
-    loginCuidadorService,
-    atualizarMeusDadosService,
-    inicioCuidadorService
+    loginCuidadorService
 } from "../services/cuidador.service.js";
 import { responderErro } from "../utils/erros.js";
 import { assinarToken } from "../utils/seguranca.js";
@@ -83,25 +81,5 @@ export const loginCuidador = async (req, res) => {
         return res.status(200).json({ message: "Login realizado com sucesso", token });
     } catch (erro) {
         return responderErro(res, erro, "Falha no login");
-    }
-};
-
-// Cuidador edita o próprio nome e telefone
-export const atualizarMeusDados = async (req, res) => {
-    try {
-        const cuidador = await atualizarMeusDadosService(req.auth.id, req.validado.body);
-        return res.status(200).json({ message: "Dados atualizados", cuidador });
-    } catch (erro) {
-        return responderErro(res, erro, "Erro ao atualizar dados");
-    }
-};
-
-// Cuidador: dados da página Início
-export const inicioCuidador = async (req, res) => {
-    try {
-        const inicio = await inicioCuidadorService(req.auth);
-        return res.status(200).json(inicio);
-    } catch (erro) {
-        return responderErro(res, erro);
     }
 };

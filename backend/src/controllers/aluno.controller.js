@@ -5,9 +5,7 @@ import {
     atualizarAlunoService,
     removerAlunoService,
     loginAlunoService,
-    meusDadosAlunoService,
-    painelAlunosService,
-    alterarFixacaoService
+    meusDadosAlunoService
 } from "../services/aluno.service.js";
 import { responderErro } from "../utils/erros.js";
 import { assinarToken } from "../utils/seguranca.js";
@@ -83,34 +81,5 @@ export const meusDadosAluno = async (req, res) => {
         return res.status(200).json({ aluno });
     } catch (erro) {
         return responderErro(res, erro);
-    }
-};
-
-// Cuidador: alunos vinculados a ele e demais alunos da escola (só consulta)
-export const painelAlunos = async (req, res) => {
-    try {
-        const painel = await painelAlunosService(req.auth);
-        return res.status(200).json(painel);
-    } catch (erro) {
-        return responderErro(res, erro);
-    }
-};
-
-// Cuidador fixa um aluno dele na página Início
-export const fixarAluno = async (req, res) => {
-    try {
-        const resultado = await alterarFixacaoService(req.auth, req.validado.params.id, true);
-        return res.status(200).json({ message: "Aluno fixado", ...resultado });
-    } catch (erro) {
-        return responderErro(res, erro, "Erro ao fixar aluno");
-    }
-};
-
-export const desafixarAluno = async (req, res) => {
-    try {
-        const resultado = await alterarFixacaoService(req.auth, req.validado.params.id, false);
-        return res.status(200).json({ message: "Aluno desafixado", ...resultado });
-    } catch (erro) {
-        return responderErro(res, erro, "Erro ao desafixar aluno");
     }
 };
