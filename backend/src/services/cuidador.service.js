@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { firestore, refUnico } from "../database/firestore.js";
-import { COLECAO_ALUNOS } from "../models/aluno.model.js";
+import { COLECAO_ALUNOS, alunoParaPainel } from "../models/aluno.model.js";
 import { COLECAO_CUIDADORES, cuidadorParaResposta } from "../models/cuidador.model.js";
 import { COLECAO_ESCOLAS } from "../models/escola.model.js";
 import { ErroHttp } from "../utils/erros.js";
@@ -116,4 +116,41 @@ export const loginCuidadorService = async (email, senha) => {
     if (!cuidador.ativo || !escola.exists || !escola.data().ativo) throw new ErroHttp(403, "Conta inativa");
 
     return { _id: doc.id };
+};
+
+// Tela Meus dados: o próprio cuidador altera só nome e telefone (o schema já descarta o resto).
+export const atualizarMeusDadosService = async (id, alteracoes) => {
+    await cuidadores().doc(id).update(alteracoes);
+    return buscarCuidadorService(id);
+};
+
+// Tela Início do cuidador: indicadores e alunos fixados, tudo a partir do token.
+// "relatoriosFeitos" fica em 0 até existir a coleção de registros (tela Registro ainda em desenvolvimento).
+export const inicioCuidadorService = async (auth) => {
+    const db = firestore();
+    const [eu, escola, vinculados] = await Promise.all([
+        cuidadores().doc(String(auth.id)).get(),
+        db.collection(COLECAO_ESCOLAS).doc(String(auth.escolaId)).get(),
+        db.collection(COLECAO_ALUNOS)
+            .where("escola", "==", String(auth.escolaId))
+            .where("cuidador", "==", String(auth.id))
+            .get()
+    ]);
+    if (!eu.exists || !escola.exists) throw new ErroHttp(404, "Cuidador não encontrado");
+
+    const fixados = new Set(eu.data().alunosFixados ?? []);
+    const { razaoSocial, endereco, telefone1 } = escola.data();
+
+    return {
+        indicadores: {
+            alunosVinculados: vinculados.size,
+            relatoriosFeitos: 0,
+            escola: { razaoSocial, municipio: endereco?.municipio ?? "", estado: endereco?.estado ?? "", telefone: telefone1 }
+        },
+        // Só entram ids ainda vinculados a ele (um aluno reatribuído ou excluído some da lista)
+        alunosFixados: vinculados.docs
+            .filter((d) => fixados.has(d.id))
+            .map((d) => alunoParaPainel(d.id, d.data(), eu.data().nome))
+            .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    };
 };

@@ -6,7 +6,10 @@ import {
     atualizarAluno,
     removerAluno,
     loginAluno,
-    meusDadosAluno
+    meusDadosAluno,
+    painelAlunos,
+    fixarAluno,
+    desafixarAluno
 } from "../controllers/aluno.controller.js";
 import { autenticar, exigirTipo } from "../middlewares/auth.js";
 import { limitadorLogin } from "../middlewares/limitadores.js";
@@ -23,6 +26,11 @@ routerAluno.use(autenticar);
 
 // Aluno logado vê os próprios dados (declarada antes de "/:id")
 routerAluno.get("/eu", exigirTipo("aluno"), meusDadosAluno);
+
+// Cuidador: tela Aluno (vinculados + demais) e fixar/desafixar. Precisam vir antes de "/:id".
+routerAluno.get("/painel", exigirTipo("cuidador"), painelAlunos);
+routerAluno.put("/:id/fixar", exigirTipo("cuidador"), validar({ params: alunoParamsSchema }), fixarAluno);
+routerAluno.delete("/:id/fixar", exigirTipo("cuidador"), validar({ params: alunoParamsSchema }), desafixarAluno);
 
 // Escola e cuidador leem (cada um só o que lhe cabe; o filtro está no service)
 routerAluno.get("/", exigirTipo("escola", "cuidador"), listarAlunos);
