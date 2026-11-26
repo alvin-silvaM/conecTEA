@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+# modelos pesados (~60 MB cada) não vão para o Git
+voices/*.onnx
