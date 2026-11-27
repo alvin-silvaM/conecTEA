@@ -9,6 +9,7 @@ import './styles/components.css';
 import './styles/layout.css';
 import './styles/edicao.css';
 import './styles/cuidador.css';
+import './styles/aluno.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -15,6 +15,11 @@ import InicioCuidadorPage from './pages/InicioCuidadorPage.jsx';
 import AlunosCuidadorPage from './pages/AlunosCuidadorPage.jsx';
 import RegistroPage from './pages/RegistroPage.jsx';
 import MeusDadosPage from './pages/MeusDadosPage.jsx';
+import AlunoLayout from './components/aluno/AlunoLayout.jsx';
+import ComunicacaoPage from './pages/aluno/ComunicacaoPage.jsx';
+import NovoCartaoPage from './pages/aluno/NovoCartaoPage.jsx';
+import RotinaAlunoPage from './pages/aluno/RotinaAlunoPage.jsx';
+import MeusDadosAlunoPage from './pages/aluno/MeusDadosAlunoPage.jsx';
 
 // Rotas logadas: sem token, redireciona para o login
 function RotaProtegida({ children }) {
@@ -34,7 +39,24 @@ function ApenasPerfil({ perfil, children }) {
   return tipo === perfil ? children : <Navigate to="/" replace />;
 }
 
+// O aluno usa um app próprio (comunicador, layout de celular): rotas separadas das da escola/cuidador.
+function RotasAluno() {
+  return (
+    <Routes>
+      <Route element={<AlunoLayout />}>
+        <Route index element={<ComunicacaoPage />} />
+        <Route path="cartao/novo" element={<NovoCartaoPage />} />
+        <Route path="rotina" element={<RotinaAlunoPage />} />
+        <Route path="meus-dados" element={<MeusDadosAlunoPage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
+  const { autenticado, tipo } = useAuth();
+  if (autenticado && tipo === 'aluno') return <RotasAluno />;
   return (
     <Routes>
       <Route path="/entrar" element={<LoginPage />} />
