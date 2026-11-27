@@ -10,10 +10,10 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { apenasDigitos, emailValido, mascararCnpj } from '../utils/format.js';
 
 export default function LoginPage() {
-  const { autenticado, entrar, entrarCuidador } = useAuth();
+  const { autenticado, entrar, entrarCuidador, entrarAluno } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [perfil, setPerfil] = useState('escola'); // "escola" entra com CNPJ; "cuidador" com e-mail
+  const [perfil, setPerfil] = useState('escola'); // "escola" entra com CNPJ; "cuidador" e "aluno" com e-mail
   const [cnpj, setCnpj] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -24,17 +24,19 @@ export default function LoginPage() {
   if (autenticado) return <Navigate to="/" replace />;
 
   const ehCuidador = perfil === 'cuidador';
+  const usaEmail = perfil !== 'escola';
 
   async function enviar(e) {
     e.preventDefault();
     setErro('');
-    if (ehCuidador ? !emailValido(email) || !senha : apenasDigitos(cnpj).length !== 14 || !senha) {
-      setErro(ehCuidador ? 'Informe um e-mail válido e a senha.' : 'Informe o CNPJ com 14 dígitos e a senha.');
+    if (usaEmail ? !emailValido(email) || !senha : apenasDigitos(cnpj).length !== 14 || !senha) {
+      setErro(usaEmail ? 'Informe um e-mail válido e a senha.' : 'Informe o CNPJ com 14 dígitos e a senha.');
       return;
     }
     setEnviando(true);
     try {
-      if (ehCuidador) await entrarCuidador(email.trim(), senha);
+      if (perfil === 'aluno') await entrarAluno(email.trim(), senha);
+      else if (ehCuidador) await entrarCuidador(email.trim(), senha);
       else await entrar(apenasDigitos(cnpj), senha);
       navigate('/', { replace: true });
     } catch (err) {
@@ -51,15 +53,18 @@ export default function LoginPage() {
           <Logo height={48} />
           <h1>Entrar no ConecTEA</h1>
           <p className="auth__desc">
-            {ehCuidador
-              ? 'Acesso para o cuidador. Use o e-mail e a senha cadastrados pela escola.'
-              : 'Acesso para a escola. Use o CNPJ e a senha do cadastro.'}
+            {perfil === 'aluno'
+              ? 'Acesso para o aluno. Use o e-mail e a senha cadastrados pela escola.'
+              : ehCuidador
+                ? 'Acesso para o cuidador. Use o e-mail e a senha cadastrados pela escola.'
+                : 'Acesso para a escola. Use o CNPJ e a senha do cadastro.'}
           </p>
 
-          <div className="perfil-switch" role="group" aria-label="Entrar como">
+          <div className="perfil-switch perfil-switch--3" role="group" aria-label="Entrar como">
             {[
               ['escola', 'Escola'],
               ['cuidador', 'Cuidador'],
+              ['aluno', 'Aluno'],
             ].map(([valor, rotulo]) => (
               <button
                 key={valor}
@@ -82,7 +87,7 @@ export default function LoginPage() {
           {erro && <Alert titulo="Não foi possível entrar">{erro}</Alert>}
 
           <form onSubmit={enviar} noValidate>
-            {ehCuidador ? (
+            {usaEmail ? (
               <TextField
                 id="email"
                 label="E-mail"
@@ -129,7 +134,7 @@ export default function LoginPage() {
               {enviando ? 'Entrando…' : 'Entrar'} <ArrowRight size={20} aria-hidden="true" />
             </Button>
           </form>
-          {!ehCuidador && (
+          {perfil === 'escola' && (
             <p className="auth__alt">
               <Link to="/cadastro">Criar conta</Link>
             </p>

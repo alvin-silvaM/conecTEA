@@ -99,3 +99,42 @@ Content-Type: application/json
 ### 14. Excluir a escola (409 se houver cuidadores ou alunos)
 DELETE {{base}}/escolas/eu
 Authorization: Bearer {{token}}
+
+### ===== TTS (texto -> áudio). Use o token do ALUNO ou do CUIDADOR (a escola recebe 403) =====
+@tokenAluno = COLE_O_TOKEN_DO_ALUNO
+@audio = COLE_O_ID_DO_AUDIO_GERADO
+
+### T1. Vozes disponíveis -> 200 { vozes: [cadu, faber, jeff, edresson] }
+GET {{base}}/tts/vozes
+Authorization: Bearer {{tokenAluno}}
+
+### T2. Aluno gera áudio para si -> 201 (novo) ou 200 (reutilizado)
+POST {{base}}/tts/audios
+Authorization: Bearer {{tokenAluno}}
+Content-Type: application/json
+
+{ "texto": "Eu quero beber água", "voz": "cadu" }
+
+### T2b. Cuidador gera áudio para aluno vinculado
+@tokenCuidador = COLE_O_TOKEN_DO_CUIDADOR
+@aluno = COLE_O_ID_DO_ALUNO_VINCULADO
+POST {{base}}/tts/audios
+Authorization: Bearer {{tokenCuidador}}
+Content-Type: application/json
+
+{ "texto": "Eu quero beber água", "voz": "cadu", "alunoId": "{{aluno}}" }
+
+### T3. Voz inválida -> 400
+POST {{base}}/tts/audios
+Authorization: Bearer {{tokenAluno}}
+Content-Type: application/json
+
+{ "texto": "Oi", "voz": "robo" }
+
+### T4. Dados do áudio (texto, voz e caminho no Storage) -> 200
+GET {{base}}/tts/audios/{{audio}}
+Authorization: Bearer {{tokenAluno}}
+
+### T5. Arquivo WAV -> 200 audio/wav
+GET {{base}}/tts/audios/{{audio}}/arquivo
+Authorization: Bearer {{tokenAluno}}

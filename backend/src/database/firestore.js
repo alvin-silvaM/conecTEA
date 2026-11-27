@@ -4,6 +4,9 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 
 // Firestore via Firebase Admin SDK (backend confiável).
+// Defina GOOGLE_APPLICATION_CREDENTIALS com o caminho de um JSON guardado fora do
+// repositório, ou use Application Default Credentials no ambiente de execução.
+
 // Credenciais, em ordem de prioridade:
 //   1. FIRESTORE_EMULATOR_HOST  -> emulador local, não precisa de credencial.
 //   2. GOOGLE_APPLICATION_CREDENTIALS -> caminho do JSON da conta de serviço (fora do repositório).
@@ -50,8 +53,12 @@ export const iniciarFirestore = async () => {
     }
 
     if (getApps().length === 0) {
-        initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID, credential: credencial });
+        initializeApp({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            credential: credencial
+        });
     }
+
 
     db = getFirestore();
     // Documentos com campos undefined são ignorados em vez de gerar erro

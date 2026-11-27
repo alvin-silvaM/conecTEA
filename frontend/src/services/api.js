@@ -91,3 +91,14 @@ export const buscarInicioCuidador = () => request('GET', '/cuidadores/eu/inicio'
 export const buscarPainelAlunos = () => request('GET', '/alunos/painel'); // { vinculados, demais }
 export const fixarAluno = (id) => request('PUT', `/alunos/${id}/fixar`);
 export const desafixarAluno = (id) => request('DELETE', `/alunos/${id}/fixar`);
+
+// Aluno (perfil logado)
+export const loginAluno = (dados) => request('POST', '/alunos/login', { body: dados, auth: false });
+export const buscarMeuAluno = () => request('GET', '/alunos/eu').then((d) => d.aluno);
+
+// Voz (TTS). O backend gera o WAV, guarda no Storage e reaproveita quando frase + voz se repetem.
+export const listarVozes = () => request('GET', '/tts/vozes').then((d) => d.vozes);
+export const gerarAudio = (dados) => request('POST', '/tts/audios', { body: dados }).then((d) => d.audio); // { _id, texto, voz, ... }
+// Baixa o arquivo WAV (rota autenticada, por isso não dá para usar o id direto em <audio src>).
+export const baixarAudio = (id) =>
+  http.get(`/tts/audios/${id}/arquivo`, { responseType: 'blob', timeout: 30000 }).then((r) => r.data);
