@@ -1,0 +1,60 @@
+# Produção local: Nginx serve o React e encaminha /api para o backend.
+#   docker compose up --build -d
+# Acesse: http://localhost:8080
+
+services:
+  tts-service:
+    build:
+      context: ./services-tts
+      dockerfile: Dockerfile
+    expose:
+      - "8001"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      # Sobrescreve o valor do .env (que aponta para ./secret/... no seu computador):
+      # dentro do container o JSON fica neste caminho, montado pelo volume abaixo.
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-service-account.json
+      PORT: "3000"
+      # O backend acessa o serviço TTS pela rede interna do Compose.
+      TTS_URL: http://tts-service:8001
+      # O backend está atrás do Nginx: sem isto, todos os usuários teriam o mesmo IP (o do Nginx)
+      # e o rate limit de login/cadastro valeria para todos juntos.
+      TRUST_PROXY: "1"
+    volumes:
+      - ./backend/secret/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+    depends_on:
+      tts-service:
+        condition: service_healthy
+    # Sem "ports": o backend só é acessível pela rede interna do Compose (via Nginx).
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

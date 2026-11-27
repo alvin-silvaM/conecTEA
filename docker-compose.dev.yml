@@ -1,0 +1,44 @@
+
+# Desenvolvimento: Vite com hot reload no front e node --watch no back.
+# Executar:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+#
+# Acessos:
+# Frontend: http://localhost:8080
+# Backend:  http://localhost:3000
+# TTS:      http://localhost:8001
+
+services:
+  tts-service:
+    # Disponibiliza o TTS diretamente no computador durante o desenvolvimento.
+    ports:
+      - "8001:8001"
+
+  backend:
+    command: ["node", "--watch", "src/app.js"]
+
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/secret/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+
+    # Acesso direto à API durante os testes.
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+
+    environment:
+      API_URL: http://backend:3000
+      CHOKIDAR_USEPOLLING: "true"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    # Substitui completamente as portas herdadas do Compose principal.
+    # Evita conflito entre Nginx (produção) e Vite (desenvolvimento).
+    ports: !override
+      - "8080:8080"
