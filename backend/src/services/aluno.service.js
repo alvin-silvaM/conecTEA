@@ -147,14 +147,23 @@ export const loginAlunoService = async (email, senha) => {
     return { _id: doc.id };
 };
 
-// Dados do próprio aluno logado: só o necessário para a tela dele (sem cuidador, escola ou senha)
+// Dados do próprio aluno logado: só o necessário para a tela "Meus dados" dele (sem senha e sem contato).
+// Inclui apenas o NOME do cuidador responsável e da escola, que a tela exibe.
 export const meusDadosAlunoService = async (id) => {
     const snapshot = await alunos().doc(id).get();
     if (!snapshot.exists) throw new ErroHttp(404, "Aluno não encontrado");
-    const { nome, email, ativo, dataNascimento } = snapshot.data();
+    const { nome, email, ativo, dataNascimento, cuidador: cuidadorId, escola: escolaId } = snapshot.data();
+
+    const [cuidador, escola] = await Promise.all([
+        cuidadorId ? cuidadores().doc(String(cuidadorId)).get() : null,
+        escolaId ? firestore().collection(COLECAO_ESCOLAS).doc(String(escolaId)).get() : null
+    ]);
+
     return {
         _id: snapshot.id, nome, email, ativo,
-        ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {})
+        ...(dataNascimento ? { dataNascimento: dataNascimento.toDate().toISOString() } : {}),
+        ...(cuidador?.exists ? { cuidador: { nome: cuidador.data().nome } } : {}),
+        ...(escola?.exists ? { escola: { razaoSocial: escola.data().razaoSocial } } : {})
     };
 };
 
